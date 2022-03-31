@@ -17,7 +17,7 @@ void RenderSceneOB() {
 }
 int main(int argc, char** argv)
 {
-	glutInit(&argc, argv);				//Инициализация glutInit
+	glutInit(&argc, argv);				//Инициализация glut
 	//Установка режима отображения glutInit. GLU_DOUBLE - двойной буфер, GLUT_RGBA - красный-зеленый-синий-альфа-канал
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA); 	
 	glutInitWindowSize(1024, 768);			//Размер окна
@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	glutCreateWindow("Tutorial 03");		//Заголовок
 	glutDisplayFunc(RenderSceneOB);			//Привязываем функцию, которая будет вызываться в glutMainLoop
 
-	GLenum res = glewInit();			//Инициализация GLenum
+	GLenum res = glewInit();			//Инициализация Glew
 	if (res != GLEW_OK) {				//Проверка на ошибки
 		fprintf(stderr, "Error: '%s' \n", glewGetErrorString(res));
 		return 1;
