@@ -5,15 +5,15 @@
 #include "GL/freeglut.h"
 
 GLuint VBO;
-float Scale = 0.0f;
 void RenderSceneCB() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glm::vec3 Vertices[3];
+	static float Scale = 0.0f;
 	Vertices[0] = glm::vec3(1.0f, 1.0f, 0.0f);
 	Vertices[2] = glm::vec3(-1.0f, 1.0f, 0.0f);
 	Vertices[1] = glm::vec3(0.0f, -1.0f, 0.0f);
 
-	Scale += 0.001f;
+	Scale += 0.101f;
 	glm::mat4x4 World;
 	World[0][0] = 1.0f; World[0][1] = 0.0f; World[0][2] = 0.0f; World[0][3] = sinf(Scale);
 	World[1][0] = 0.0f; World[1][1] = 1.0f; World[1][2] = 0.0f; World[1][3] = 0.0f;
