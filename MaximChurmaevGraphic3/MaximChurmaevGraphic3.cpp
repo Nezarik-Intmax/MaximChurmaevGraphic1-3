@@ -68,7 +68,7 @@ static void CompileShaders()
 	}
 
 	AddShader(ShaderProgram, pVS, GL_VERTEX_SHADER);
-	AddShader(ShaderProgram, pFS, GL_FRAGMENT_SHADER);
+	AddShader(ShaderProgram, pFS, GL_FRAGMENT_SHADER); 
 
 	GLint Success = 0;
 	GLchar ErrorLog[1024] = { 0 };
