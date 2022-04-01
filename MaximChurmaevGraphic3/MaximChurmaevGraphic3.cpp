@@ -55,7 +55,7 @@ static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum Shad
 		exit(1);
 	}
 
-	glAttachShader(ShaderProgram, ShaderObj);
+	glAttachShader(ShaderProgram, ShaderObj); 
 }
 
 static void CompileShaders()
