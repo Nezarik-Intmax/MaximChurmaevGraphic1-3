@@ -9,13 +9,13 @@ float Scale = 0.0f;
 #define M_PI 3.14159265358979323846
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
-void InitPers(glm::mat4x4& m) {
-	const float ar = 1024 / 768;// m_persProj.Width / m_persProj.Height;
-	const float zNear = 1.0f;// m_persProj.zNear;
-	const float zFar = 1000.0f;// m_persProj.zFar;
+void InitPers(glm::mat4x4& m, float zNear, float zFar, float width, float height, float fov) {
+	const float ar = width / height;//1024 / 768;// m_persProj.Width / m_persProj.Height;
+	//const float zNear = 1.0f;// m_persProj.zNear;
+	//const float zFar = 1000.0f;// m_persProj.zFar;
 	const float zRange = zNear - zFar;
 	//const float tanHalfFOV = tanf(ToRadian(30.0f / 2.0));
-	const float tanHalfFOV = tanf(30.0f / 2.0);
+	const float tanHalfFOV = tanf(fov / 2.0);
 
 	m[0][0] = 1.0f / (tanHalfFOV * 1);
 	m[0][1] = 0.0f;
@@ -73,11 +73,6 @@ void RenderSceneCB() {
 	Vertices[1] = glm::vec3(0.0f, -1.0f, 0.0f);
 
 	Scale += 0.001f;
-	glm::mat4x4 WorldPers;
-	WorldPers[0][0] = 1.0f;		   WorldPers[0][1] = 0.0f;        WorldPers[0][2] = 0.0f;        WorldPers[0][3] = 0.0f;
-	WorldPers[1][0] = 0.0f;        WorldPers[1][1] = 1.0f;		  WorldPers[1][2] = 0.0f;        WorldPers[1][3] = 0.0f;
-	WorldPers[2][0] = 0.0f;        WorldPers[2][1] = 0.0f;        WorldPers[2][2] = 1.0f;		 WorldPers[2][3] = 0.0f;
-	WorldPers[3][0] = 0.0f;        WorldPers[3][1] = 0.0f;        WorldPers[3][2] = 0.0f;        WorldPers[3][3] = 1.0f;
 	/*glm::mat4x4 WorldPos;
 	WorldPos[0][0] = 1.0f; WorldPos[0][1] = 0.0f; WorldPos[0][2] = 0.0f; WorldPos[0][3] = sinf(Scale);
 	WorldPos[1][0] = 0.0f; WorldPos[1][1] = 1.0f; WorldPos[1][2] = 0.0f; WorldPos[1][3] = 0.0f;
@@ -93,7 +88,8 @@ void RenderSceneCB() {
 	WorldScl[1][0] = 0.0f;        WorldScl[1][1] = cosf(Scale); WorldScl[1][2] = 0.0f;        WorldScl[1][3] = 0.0f;
 	WorldScl[2][0] = 0.0f;        WorldScl[2][1] = 0.0f;        WorldScl[2][2] = sinf(Scale); WorldScl[2][3] = 0.0f;
 	WorldScl[3][0] = 0.0f;        WorldScl[3][1] = 0.0f;        WorldScl[3][2] = 0.0f;        WorldScl[3][3] = 1.0f;*/
-	InitPers(WorldPers);
+	glm::mat4x4 WorldPers;
+	InitPers(WorldPers, 1.0f, 1000.0f, 1024, 768, 30);
 	//glm::mat4x4 m_transformation = WorldPers * WorldPos * WorldRot * WorldScl;
 	/*
 	
