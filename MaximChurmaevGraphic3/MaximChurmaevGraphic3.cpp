@@ -6,6 +6,61 @@
 
 GLuint VBO;
 float Scale = 0.0f;
+void InitPers(glm::mat4x4& m) {
+	//const float ar = m_persProj.Width / m_persProj.Height;
+	const float zNear = 0;// m_persProj.zNear;
+	const float zFar = 100;// m_persProj.zFar;
+	const float zRange = zNear - zFar;
+	const float tanHalfFOV = 10;// tanf(ToRadian(m_persProj.FOV / 2.0));
+
+	m[0][0] = 1.0f / (tanHalfFOV * 1);
+	m[0][1] = 0.0f;
+	m[0][2] = 0.0f;
+	m[0][3] = 0.0f;
+
+	m[1][0] = 0.0f;
+	m[1][1] = 1.0f / tanHalfFOV;
+	m[1][2] = 0.0f;
+	m[1][3] = 0.0f;
+
+	m[2][0] = 0.0f;
+	m[2][1] = 0.0f;
+	m[2][2] = (-zNear - zFar) / zRange;
+	m[2][3] = 2.0f * zFar * zNear / zRange;
+
+	m[3][0] = 0.0f;
+	m[3][1] = 0.0f;
+	m[3][2] = 1.0f;
+	m[3][3] = 0.0f;
+
+}
+/*void InitPerspectiveProj(Matrix4f& m) {
+	const float ar = m_persProj.Width / m_persProj.Height;
+	const float zNear = m_persProj.zNear;
+	const float zFar = m_persProj.zFar;
+	const float zRange = zNear - zFar;
+	const float tanHalfFOV = tanf(ToRadian(m_persProj.FOV / 2.0));
+
+	m.m[0][0] = 1.0f / (tanHalfFOV * ar);
+	m.m[0][1] = 0.0f;
+	m.m[0][2] = 0.0f;
+	m.m[0][3] = 0.0f;
+
+	m.m[1][0] = 0.0f;
+	m.m[1][1] = 1.0f / tanHalfFOV;
+	m.m[1][2] = 0.0f;
+	m.m[1][3] = 0.0f;
+
+	m.m[2][0] = 0.0f;
+	m.m[2][1] = 0.0f;
+	m.m[2][2] = (-zNear - zFar) / zRange;
+	m.m[2][3] = 2.0f * zFar * zNear / zRange;
+
+	m.m[3][0] = 0.0f;
+	m.m[3][1] = 0.0f;
+	m.m[3][2] = 1.0f;
+	m.m[3][3] = 0.0f;
+}*/
 void RenderSceneCB() {
 	glClear(GL_COLOR_BUFFER_BIT);
 	glm::vec3 Vertices[3];
@@ -15,10 +70,12 @@ void RenderSceneCB() {
 
 	Scale += 0.001f;
 	glm::mat4x4 World;
-	World[0][0] = sinf(Scale); World[0][1] = 0.0f;        World[0][2] = 0.0f;        World[0][3] = 0.0f;
-	World[1][0] = 0.0f;        World[1][1] = cosf(Scale); World[1][2] = 0.0f;        World[1][3] = 0.0f;
-	World[2][0] = 0.0f;        World[2][1] = 0.0f;        World[2][2] = sinf(Scale); World[2][3] = 0.0f;
+	World[0][0] = 1.0f;		   World[0][1] = 0.0f;        World[0][2] = 0.0f;        World[0][3] = 0.0f;
+	World[1][0] = 0.0f;        World[1][1] = 1.0f;		  World[1][2] = 0.0f;        World[1][3] = 0.0f;
+	World[2][0] = 0.0f;        World[2][1] = 0.0f;        World[2][2] = 1.0f;		 World[2][3] = 0.0f;
 	World[3][0] = 0.0f;        World[3][1] = 0.0f;        World[3][2] = 0.0f;        World[3][3] = 1.0f;
+	InitPers(World);
+	m_transformation = PersProjTrans * TranslationTrans * RotateTrans * ScaleTrans;
 	Vertices[0] = World * glm::vec4(Vertices[0], 1.0f);
 	Vertices[1] = World * glm::vec4(Vertices[1], 1.0f);
 	Vertices[2] = World * glm::vec4(Vertices[2], 1.0f);
