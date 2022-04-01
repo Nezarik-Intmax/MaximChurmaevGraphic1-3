@@ -11,7 +11,7 @@ void RenderSceneOB() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	glDrawArrays(GL_TRIANGLES, 0, 3);
 	glDisableVertexAttribArray(0);
-	glutSwapBuffers();
+	glutSwapBuffers(); 
 }
 int main(int argc, char** argv)
 {
