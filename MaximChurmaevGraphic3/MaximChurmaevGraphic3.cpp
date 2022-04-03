@@ -67,10 +67,11 @@ void InitPers(glm::mat4x4& m, float zNear, float zFar, float width, float height
 }*/
 void RenderSceneCB() {
 	glClear(GL_COLOR_BUFFER_BIT);
-	glm::vec3 Vertices[3];
-	Vertices[0] = glm::vec3(1.0f, 1.0f, 0.0f);
-	Vertices[2] = glm::vec3(-1.0f, 1.0f, 0.0f);
-	Vertices[1] = glm::vec3(0.0f, -1.0f, 0.0f);
+	glm::vec3 Vertices[4];
+	Vertices[0] = glm::vec3(-1.0f, -1.0f, 0.5773f);
+	Vertices[1] = glm::vec3(0.0f, -1.0f, -1.15475);
+	Vertices[2] = glm::vec3(1.0f, -1.0f, 0.5773f);
+	Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	Scale += 0.001f;
 	/*glm::mat4x4 WorldPos;
@@ -94,9 +95,10 @@ void RenderSceneCB() {
 	/*
 	
 	*/
-	Vertices[0] = WorldPers * glm::vec4(Vertices[0], 1.0f);
+	/*Vertices[0] = WorldPers * glm::vec4(Vertices[0], 1.0f);
 	Vertices[1] = WorldPers * glm::vec4(Vertices[1], 1.0f);
 	Vertices[2] = WorldPers * glm::vec4(Vertices[2], 1.0f);
+	Vertices[3] = WorldPers * glm::vec4(Vertices[3], 1.0f);*/
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
@@ -105,7 +107,7 @@ void RenderSceneCB() {
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	glDrawArrays(GL_TRIANGLES, 0, 4);
 
 	glDisableVertexAttribArray(0);
 
