@@ -90,7 +90,7 @@ static void InitializeGlutCallbacks(){
     glutIdleFunc(RenderSceneCB);
 }
 
-static void CreateVertexBuffer(){
+static void CreateVertexBuffer(){ 
     Vector3f Vertices[4];
     Vertices[0] = Vector3f(-1.0f, -1.0f, 0.5773f);
     Vertices[1] = Vector3f(0.0f, -1.0f, -1.15475);
