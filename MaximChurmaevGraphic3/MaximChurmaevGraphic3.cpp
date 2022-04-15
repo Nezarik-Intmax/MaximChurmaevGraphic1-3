@@ -96,7 +96,7 @@ void RenderSceneCB() {
 	Vertices[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	Scale = -0.05f;//+= 0.001f;
-	Rotate += 0.001f;
+	Rotate += 0.01f;
 	glm::mat4x4 WorldPos;
 	WorldPos[0][0] = 1.0f; WorldPos[0][1] = 0.0f; WorldPos[0][2] = 0.0f; WorldPos[0][3] = 0.0f;//sinf(Scale);
 	WorldPos[1][0] = 0.0f; WorldPos[1][1] = 1.0f; WorldPos[1][2] = 0.0f; WorldPos[1][3] = 0.0f;
@@ -117,9 +117,9 @@ void RenderSceneCB() {
 	WorldScl[3][0] = 0.0f;        WorldScl[3][1] = 0.0f;        WorldScl[3][2] = 0.0f;        WorldScl[3][3] = 1.0f;
 	glm::mat4x4 WorldPers;
 
-	WorldRot[0][0] = cosf(Rotate); WorldRot[0][1] = 0.0f; WorldRot[0][2] = -sinf(Rotate); WorldRot[0][3] = 0.0f;
+	WorldRot[0][0] = cosf(ToRadian(Rotate)); WorldRot[0][1] = 0.0f; WorldRot[0][2] = -sinf(ToRadian(Rotate)); WorldRot[0][3] = 0.0f;
 	WorldRot[1][0] = 0.0f; WorldRot[1][1] = 1.0f; WorldRot[1][2] = 0.0f; WorldRot[1][3] = 0.0f;
-	WorldRot[2][0] = sinf(Rotate); WorldRot[2][1] = 0.0f; WorldRot[2][2] = cosf(Rotate); WorldRot[2][3] = 0.0f;
+	WorldRot[2][0] = sinf(ToRadian(Rotate)); WorldRot[2][1] = 0.0f; WorldRot[2][2] = cosf(ToRadian(Rotate)); WorldRot[2][3] = 0.0f;
 	WorldRot[3][0] = 0.0f; WorldRot[3][1] = 0.0f; WorldRot[3][2] = 0.0f; WorldRot[3][3] = 1.0f;
 	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 120.0f);
 	glm::mat4x4 m_transformation = WorldPers * WorldPos/**/ */**/ WorldRot;// *WorldScl;
