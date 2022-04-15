@@ -2,7 +2,8 @@
 #include "GL/glew.h";
 #include "GL/glut.h";
 #include "glm/glm.hpp";
-#include "GL/freeglut.h"
+#include "GL/freeglut.h";
+#include "C:\src\lib\Magick++.h";
 
 GLuint VBO;
 GLuint IBO;
