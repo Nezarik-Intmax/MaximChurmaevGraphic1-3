@@ -17,7 +17,7 @@ void InitPers(glm::mat4x4& m, float zNear, float zFar, float width, float height
 	//const float zFar = 1000.0f;// m_persProj.zFar;
 	const float zRange = zNear - zFar;
 	//const float tanHalfFOV = tanf(ToRadian(30.0f / 2.0));
-	const float tanHalfFOV = tanf(fov / 2.0);
+	const float tanHalfFOV = tanf(ToRadian(fov / 2.0f));
 
 	/*m[0][0] = 1.0f / (tanHalfFOV * ar);
 	m[0][1] = 0.0f;
@@ -121,7 +121,7 @@ void RenderSceneCB() {
 	WorldRot[1][0] = 0.0f; WorldRot[1][1] = 1.0f; WorldRot[1][2] = 0.0f; WorldRot[1][3] = 0.0f;
 	WorldRot[2][0] = sinf(Rotate); WorldRot[2][1] = 0.0f; WorldRot[2][2] = cosf(Rotate); WorldRot[2][3] = 0.0f;
 	WorldRot[3][0] = 0.0f; WorldRot[3][1] = 0.0f; WorldRot[3][2] = 0.0f; WorldRot[3][3] = 1.0f;
-	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 30.0f);
+	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 120.0f);
 	glm::mat4x4 m_transformation = WorldPers * WorldPos/**/ */**/ WorldRot;// *WorldScl;
 	/*
 	
