@@ -121,8 +121,8 @@ void RenderSceneCB() {
 	WorldRot[1][0] = 0.0f; WorldRot[1][1] = 1.0f; WorldRot[1][2] = 0.0f; WorldRot[1][3] = 0.0f;
 	WorldRot[2][0] = sinf(Rotate); WorldRot[2][1] = 0.0f; WorldRot[2][2] = cosf(Rotate); WorldRot[2][3] = 0.0f;
 	WorldRot[3][0] = 0.0f; WorldRot[3][1] = 0.0f; WorldRot[3][2] = 0.0f; WorldRot[3][3] = 1.0f;
-	InitPers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
-	glm::mat4x4 m_transformation = WorldPers /* WorldPos/**/ * WorldRot;// *WorldScl;
+	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 30.0f);
+	glm::mat4x4 m_transformation = WorldPers * WorldPos/**/ */**/ WorldRot;// *WorldScl;
 	/*
 	
 	*/
