@@ -72,16 +72,32 @@ void InitPers(glm::fmat4& m, float zNear, float zFar, float width, float height,
 void RenderSceneCB(){
 	glClear(GL_COLOR_BUFFER_BIT);
 	glm::fvec3 Vertices[4];
-	Vertices[0] = glm::fvec3(-1.0f, -1.0f, 0.5773f);
+	/*Vertices[0] = glm::fvec3(-1.0f, -1.0f, 0.5773f);
 	Vertices[1] = glm::fvec3(0.0f, -1.0f, -1.15475);
 	Vertices[2] = glm::fvec3(1.0f, -1.0f, 0.5773f);
+	Vertices[3] = glm::fvec3(0.0f, 1.0f, 0.0f);*/
+	Vertices[0] = glm::fvec3(-1.0f, -1.0f, 0.0f);
+	Vertices[1] = glm::fvec3(0.0f, -1.0f, 1.0f);
+	Vertices[2] = glm::fvec3(1.0f, -1.0f, 0.0f);
 	Vertices[3] = glm::fvec3(0.0f, 1.0f, 0.0f);
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+
+	unsigned int Indices[] = {0, 3, 1,
+							  1, 3, 2,
+							  2, 3, 0,
+							  0, 2, 1};
+
+	glGenBuffers(1, &IBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 
 	Scale += 0.001f;
 	glm::fmat4 WorldPos;
 	WorldPos[0][0] = 1.0f; WorldPos[0][1] = 0.0f; WorldPos[0][2] = 0.0f; WorldPos[0][3] = 0.0f;//sinf(ToRadian(Scale));
 	WorldPos[1][0] = 0.0f; WorldPos[1][1] = 1.0f; WorldPos[1][2] = 0.0f; WorldPos[1][3] = 0.0f;
-	WorldPos[2][0] = 0.0f; WorldPos[2][1] = 0.0f; WorldPos[2][2] = 1.0f; WorldPos[2][3] = 0.0f;
+	WorldPos[2][0] = 0.0f; WorldPos[2][1] = 0.0f; WorldPos[2][2] = 1.0f; WorldPos[2][3] = 5.0f;
 	WorldPos[3][0] = 0.0f; WorldPos[3][1] = 0.0f; WorldPos[3][2] = 0.0f; WorldPos[3][3] = 1.0f;
 	glm::fmat4 WorldRot;
 	/*WorldRot[0][0] = cosf(ToRadian(Scale)); WorldRot[0][1] = -sinf(ToRadian(Scale)); WorldRot[0][2] = 0.0f; WorldRot[0][3] = 0.0f;
@@ -90,18 +106,18 @@ void RenderSceneCB(){
 	WorldRot[3][0] = 0.0f;        WorldRot[3][1] = 0.0f;         WorldRot[3][2] = 0.0f; WorldRot[3][3] = 1.0f;*/
 
 
-	WorldRot[0][0] = cosf(ToRadian(Scale)); WorldRot[0][1] = 0.0f; WorldRot[0][2] = -sinf(ToRadian(Scale)); WorldRot[0][3] = 0.0f;
-	WorldRot[1][0] = 0.0f; WorldRot[1][1] = 1.0f;  WorldRot[1][2] = 0.0f; WorldRot[1][3] = 0.0f;
-	WorldRot[2][0] = sinf(ToRadian(Scale));        WorldRot[2][1] = 0.0f;         WorldRot[2][2] = cosf(ToRadian(Scale)); WorldRot[2][3] = 0.0f;
-	WorldRot[3][0] = 0.0f;        WorldRot[3][1] = 0.0f;         WorldRot[3][2] = 0.0f; WorldRot[3][3] = 1.0f;
+	WorldRot[0][0] = cosf(ToRadian(Scale));		   WorldRot[0][1] = 0.0f;		  WorldRot[0][2] = -sinf(ToRadian(Scale));  WorldRot[0][3] = 0.0f;
+	WorldRot[1][0] = 0.0f;						   WorldRot[1][1] = 1.0f;		  WorldRot[1][2] = 0.0f;					WorldRot[1][3] = 0.0f;
+	WorldRot[2][0] = sinf(ToRadian(Scale));        WorldRot[2][1] = 0.0f;         WorldRot[2][2] = cosf(ToRadian(Scale));   WorldRot[2][3] = 0.0f;
+	WorldRot[3][0] = 0.0f;						   WorldRot[3][1] = 0.0f;         WorldRot[3][2] = 0.0f;					WorldRot[3][3] = 1.0f;
 
 	glm::fmat4 WorldScl;
-	WorldScl[0][0] = 0.1f; WorldScl[0][1] = 0.0f;        WorldScl[0][2] = 0.0f;        WorldScl[0][3] = 0.0f;
-	WorldScl[1][0] = 0.0f;        WorldScl[1][1] = 0.1f; WorldScl[1][2] = 0.0f;        WorldScl[1][3] = 0.0f;
-	WorldScl[2][0] = 0.0f;        WorldScl[2][1] = 0.0f;        WorldScl[2][2] = 0.1f; WorldScl[2][3] = 0.0f;
+	WorldScl[0][0] = 1.0f;		  WorldScl[0][1] = 0.0f;        WorldScl[0][2] = 0.0f;        WorldScl[0][3] = 0.0f;
+	WorldScl[1][0] = 0.0f;        WorldScl[1][1] = 1.0f;		WorldScl[1][2] = 0.0f;        WorldScl[1][3] = 0.0f;
+	WorldScl[2][0] = 0.0f;        WorldScl[2][1] = 0.0f;        WorldScl[2][2] = 1.0f;		  WorldScl[2][3] = 0.0f;
 	WorldScl[3][0] = 0.0f;        WorldScl[3][1] = 0.0f;        WorldScl[3][2] = 0.0f;        WorldScl[3][3] = 1.0f;
 	glm::fmat4 WorldPers;
-	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 30);
+	InitPers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
 	glm::fmat4* m_transformation = new glm::fmat4(glm::transpose(glm::transpose(WorldPers) * WorldPos * WorldRot * WorldScl));
 
 	/*
@@ -111,30 +127,17 @@ void RenderSceneCB(){
 	Vertices[2] = m_transformation * glm::vec4(Vertices[2], 1.0f);
 	Vertices[3] = m_transformation * glm::vec4(Vertices[3], 1.0f);
 	*/
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
+
+
+
+	//glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+
 	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-
-
-	glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
-
-	unsigned int Indices[] = {0, 3, 1,
-							   1, 3, 2,
-							   2, 3, 0,
-							   0, 2, 1};
-
-	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
-
 
 	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	glDisableVertexAttribArray(0);
 
 	glutSwapBuffers();
 }
