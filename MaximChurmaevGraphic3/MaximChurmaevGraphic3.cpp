@@ -10,15 +10,15 @@ float Scale = 0.0f;
 #define M_PI 3.14159265358979323846
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
-void InitPers(glm::fmat4& m, float zNear, float zFar, float width, float height, float fov) {
+void InitPers(glm::fmat4& m, float zNear, float zFar, float width, float height, float fov){
 	const float ar = width / height;//1024 / 768;// m_persProj.Width / m_persProj.Height;
 	//const float zNear = 1.0f;// m_persProj.zNear;
 	//const float zFar = 1000.0f;// m_persProj.zFar;
 	const float zRange = zNear - zFar;
 	//const float tanHalfFOV = tanf(ToRadian(30.0f / 2.0));
-	const float tanHalfFOV = tanf(ToRadian(fov / 2.0f));
+	const float tanHalfFOV = tanf(ToRadian(fov / 2.0));
 
-	m[0][0] = 1.0f / (tanHalfFOV * 1);
+	m[0][0] = 1.0f / (tanHalfFOV * ar);
 	m[0][1] = 0.0f;
 	m[0][2] = 0.0f;
 	m[0][3] = 0.0f;
@@ -39,7 +39,7 @@ void InitPers(glm::fmat4& m, float zNear, float zFar, float width, float height,
 	m[3][3] = 0.0f;
 
 }
-void RenderSceneCB() {
+void RenderSceneCB(){
 	glClear(GL_COLOR_BUFFER_BIT);
 	glm::fvec3 Vertices[4];
 	Vertices[0] = glm::fvec3(-1.0f, -1.0f, 0.5773f);
@@ -51,7 +51,7 @@ void RenderSceneCB() {
 	glm::fmat4 WorldPos;
 	WorldPos[0][0] = 1.0f; WorldPos[0][1] = 0.0f; WorldPos[0][2] = 0.0f; WorldPos[0][3] = 0.0f;//sinf(ToRadian(Scale));
 	WorldPos[1][0] = 0.0f; WorldPos[1][1] = 1.0f; WorldPos[1][2] = 0.0f; WorldPos[1][3] = 0.0f;
-	WorldPos[2][0] = 0.0f; WorldPos[2][1] = 0.0f; WorldPos[2][2] = 1.0f; WorldPos[2][3] = 5.0f;
+	WorldPos[2][0] = 0.0f; WorldPos[2][1] = 0.0f; WorldPos[2][2] = 1.0f; WorldPos[2][3] = 0.0f;
 	WorldPos[3][0] = 0.0f; WorldPos[3][1] = 0.0f; WorldPos[3][2] = 0.0f; WorldPos[3][3] = 1.0f;
 	glm::fmat4 WorldRot;
 	/*WorldRot[0][0] = cosf(ToRadian(Scale)); WorldRot[0][1] = -sinf(ToRadian(Scale)); WorldRot[0][2] = 0.0f; WorldRot[0][3] = 0.0f;
@@ -74,7 +74,7 @@ void RenderSceneCB() {
 	InitPers(WorldPers, 0.1f, 100.0f, 1024, 768, 30);
 	glm::fmat4 m_transformation = glm::transpose(WorldPers) * WorldPos * WorldRot * glm::transpose(WorldScl);
 	/*
-	
+
 	*/
 	m_transformation = glm::transpose(m_transformation);
 	Vertices[0] = m_transformation * glm::vec4(Vertices[0], 1.0f);
@@ -104,8 +104,7 @@ void RenderSceneCB() {
 
 	glutSwapBuffers();
 }
-int main(int argc, char** argv)
-{
+int main(int argc, char** argv){
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(1024, 768);
@@ -115,7 +114,7 @@ int main(int argc, char** argv)
 	glutIdleFunc(RenderSceneCB);
 
 	GLenum res = glewInit();
-	if (res != GLEW_OK) {
+	if(res != GLEW_OK){
 		fprintf(stderr, "Error: '%s' \n", glewGetErrorString(res));
 		return 1;
 	}
