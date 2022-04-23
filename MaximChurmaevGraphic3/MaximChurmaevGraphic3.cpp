@@ -3,8 +3,7 @@
 #include "GL/glut.h";
 #include "glm/glm.hpp";
 #include "GL/freeglut.h";
-#include "C:\src\lib\Magick++.h";
-
+#include <Magick++.h>
 GLuint VBO;
 GLuint IBO;
 float Scale = 0.0f;
