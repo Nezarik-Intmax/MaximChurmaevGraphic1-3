@@ -173,17 +173,17 @@ void RenderSceneCB(){
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
-
-	unsigned int Indices[] = {0, 3, 1,
-							  1, 3, 2,
-							  2, 3, 0,
-							  0, 2, 1};
+	
+    unsigned int Indices[] = { 0, 3, 1,
+                               1, 3, 2,
+                               2, 3, 0,
+                               1, 2, 0 };
 
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 
-	Scale += 0.001f;
+	Scale += 0.01f;
 	glm::fmat4 WorldPos;
 	WorldPos[0][0] = 1.0f; WorldPos[0][1] = 0.0f; WorldPos[0][2] = 0.0f; WorldPos[0][3] = 0.0f;//sinf(ToRadian(Scale));
 	WorldPos[1][0] = 0.0f; WorldPos[1][1] = 1.0f; WorldPos[1][2] = 0.0f; WorldPos[1][3] = 0.0f;
@@ -307,7 +307,7 @@ int main(int argc, char** argv){
 	CompileShaders();
 	glUniform1i(gSampler, 0);
 
-	pTexture = new Texture(GL_TEXTURE_2D, "C:\\test.png");
+	pTexture = new Texture(GL_TEXTURE_2D, "C:\\test.jpg");
 
 	if (!pTexture->Load()) {
 		return 1;
