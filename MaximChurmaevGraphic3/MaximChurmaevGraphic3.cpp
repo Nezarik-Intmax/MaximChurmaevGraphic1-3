@@ -70,6 +70,32 @@ struct Vertex
 	}
 };
 
+struct{
+	glm::fvec3 Pos;
+	glm::fvec3 Target;
+	glm::fvec3 Up;
+} m_camera;
+void SetCamera(const glm::fvec3& Pos, const glm::fvec3& Target, const glm::fvec3& Up){
+	m_camera.Pos = Pos;
+	m_camera.Target = Target;
+	m_camera.Up = Up;
+}
+void CameraTransform(const glm::fvec3& Target, const glm::fvec3& Up, glm::fmat4& m){
+	glm::fvec3 N = Target;
+	N = glm::normalize(N);
+	//N.Normalize();
+	glm::fvec3 U = Up;
+	U = glm::normalize(U);
+	//U.Normalize();
+	U = cross(U, Target);
+	glm::fvec3 V = cross(N, U);
+
+	m[0][0] = U.x; m[0][1] = U.y; m[0][2] = U.z; m[0][3] = 0.0f;
+	m[1][0] = V.x; m[1][1] = V.y; m[1][2] = V.z; m[1][3] = 0.0f;
+	m[2][0] = N.x; m[2][1] = N.y; m[2][2] = N.z; m[2][3] = 0.0f;
+	m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f; m[3][3] = 1.0f;
+}
+
 struct DirectionalLight{
 	glm::fvec3 Color;
 	float AmbientIntensity;
@@ -222,15 +248,20 @@ void RenderSceneCB(){
 	glm::fmat4 WorldScl;
 	glm::fmat4 WorldRot;
 	glm::fmat4 WorldPos;
+	glm::fmat4 CameraPos;
+	glm::fmat4 CameraRot;
 	glm::fmat4 WorldPers;
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
 	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
 
-	*m_transformation = glm::transpose(WorldPers * WorldPos * WorldRot * WorldScl);
-	
+	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
+	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
+
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
+	*m_transformation = glm::transpose(WorldPers * CameraRot * CameraPos * WorldPos * WorldRot * WorldScl);
+	
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 
@@ -380,6 +411,11 @@ int main(int argc, char** argv){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
 
+
+	glm::fvec3 CameraPos(2.0f, 0.0f, 0.0f);
+	glm::fvec3 CameraTarget(0.45f, 0.0f, 1.0f);
+	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
+	SetCamera(CameraPos, CameraTarget, CameraUp);
 
 	CompileShaders();
 	glUniform1i(gSampler, 0);
