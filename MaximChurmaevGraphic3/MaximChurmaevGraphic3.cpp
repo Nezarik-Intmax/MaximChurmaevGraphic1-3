@@ -58,6 +58,7 @@ struct Vertex
 {
 	glm::fvec3 m_pos;
 	glm::fvec2 m_tex;
+	glm::fvec3 m_normal;
 
 	Vertex() {}
 
@@ -65,23 +66,49 @@ struct Vertex
 	{
 		m_pos = pos;
 		m_tex = tex;
+		m_normal = glm::fvec3(0.0f, 0.0f, 0.0f);
 	}
 };
 
 struct DirectionalLight{
 	glm::fvec3 Color;
 	float AmbientIntensity;
+	glm::fvec3 Direction;
+	float DiffuseIntensity;
 };
+void CalcNormals(const unsigned int* pIndices, unsigned int IndexCount, Vertex* pVertices, unsigned int VertexCount){
+	for(unsigned int i = 0; i < IndexCount; i += 3){
+		unsigned int Index0 = pIndices[i];
+		unsigned int Index1 = pIndices[i + 1];
+		unsigned int Index2 = pIndices[i + 2];
+		glm::fvec3 v1 = pVertices[Index1].m_pos - pVertices[Index0].m_pos;
+		glm::fvec3 v2 = pVertices[Index2].m_pos - pVertices[Index0].m_pos;
+		glm::fvec3 Normal = cross(v1, v2);
+		Normal = glm::normalize(Normal);
+
+		pVertices[Index0].m_normal += Normal;
+		pVertices[Index1].m_normal += Normal;
+		pVertices[Index2].m_normal += Normal;
+	}
+
+	for(unsigned int i = 0; i < VertexCount; i++){
+		pVertices[i].m_normal = glm::normalize(pVertices[i].m_normal);
+	}
+}
 
 
 GLuint VBO;
 GLuint IBO;
 GLuint gWVPLocation;
+GLuint m_WorldMatrixLocation;
 GLuint m_dirLightColorLocation;
 GLuint m_dirLightAmbientIntensityLocation;
+GLuint m_dirLightLocationDirection;
+GLuint m_dirLightLocationDiffuseIntensity;
 Texture* pTexture = NULL;
 GLuint gSampler;
 glm::fmat4* m_transformation = new glm::fmat4();
+glm::fmat4* World = new glm::fmat4();
 
 #define M_PI 3.14159265358979323846
 #define ToRadian(x) ((x) * M_PI / 180.0f)
@@ -91,26 +118,33 @@ static const char* pVS = "                                                      
 #version 330                                                                        \n\
 layout(location = 0) in vec3 Position;												\n\
 layout(location = 1) in vec2 TexCoord;												\n\
+layout(location = 2) in vec3 Normal;												\n\
 																					\n\
 uniform mat4 gWVP;																	\n\
+uniform mat4 gWorld;																\n\
 																					\n\
 out vec2 TexCoord0;																	\n\
+out vec3 Normal0;                                                                   \n\
 																					\n\
 void main()																			\n\
 {																					\n\
 	gl_Position = gWVP * vec4(Position, 1.0);										\n\
 	TexCoord0 = TexCoord;															\n\
+	Normal0 = (gWorld * vec4(Normal, 0.0)).xyz;										\n\
 };";
 
 static const char* pFS = "                                                          \n\
 #version 330                                                                        \n\
 																					\n\
 in vec2 TexCoord0;																	\n\
+in vec3 Normal0;                                                                    \n\
 																					\n\
 out vec4 FragColor;																	\n\
 struct DirectionalLight{															\n\
 	vec3 Color;																		\n\
 	float AmbientIntensity;															\n\
+	vec3 Direction;																	\n\
+	float DiffuseIntensity;															\n\
 };																					\n\
 																					\n\
 uniform DirectionalLight gDirectionalLight;											\n\
@@ -118,7 +152,16 @@ uniform sampler2D gSampler;															\n\
 																					\n\
 void main()																			\n\
 {																					\n\
-	FragColor = texture2D(gSampler, TexCoord0.xy) * vec4(gDirectionalLight.Color, 1.0) * gDirectionalLight.AmbientIntensity;	\n\
+	vec4 AmbientColor = vec4(gDirectionalLight.Color, 1.0f) * gDirectionalLight.AmbientIntensity;	\n\
+	float DiffuseFactor = dot(normalize(Normal0), -gDirectionalLight.Direction);					\n\
+	vec4 DiffuseColor;																				\n\
+	if(DiffuseFactor > 0){																			\n\
+		DiffuseColor = vec4(gDirectionalLight.Color, 1.0f) * gDirectionalLight.DiffuseIntensity *	\n\
+			DiffuseFactor;																			\n\
+	} else{																							\n\
+		DiffuseColor = vec4(0, 0, 0, 0);															\n\
+	}																								\n\
+	FragColor = texture2D(gSampler, TexCoord0.xy)  * (AmbientColor + DiffuseColor);					\n\
 };";
 
 
@@ -187,25 +230,36 @@ void RenderSceneCB(){
 
 	*m_transformation = glm::transpose(WorldPers * WorldPos * WorldRot * WorldScl);
 	
+	*World = WorldPos * WorldRot * WorldScl;
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 
 	DirectionalLight Light;
 	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
-	Light.AmbientIntensity = 1.0f;
+	Light.AmbientIntensity = 0.0f;
+	Light.Direction = glm::vec3(1.0f, 1.0f, 1.0f);
+	Light.DiffuseIntensity = 0.75f;
 	glUniform3f(m_dirLightColorLocation, Light.Color.x, Light.Color.y, Light.Color.z);
 	glUniform1f(m_dirLightAmbientIntensityLocation, Light.AmbientIntensity);
+	glm::fvec3 Direction = Light.Direction;
+	Direction = glm::normalize(Direction);
+	glUniform3f(m_dirLightLocationDirection, Direction.x, Direction.y, Direction.z);
+	glUniform1f(m_dirLightLocationDiffuseIntensity, Light.DiffuseIntensity);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
 	pTexture->Bind(GL_TEXTURE0);
 
 	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 
 	glutSwapBuffers();
 }
@@ -270,12 +324,18 @@ static void CompileShaders(){
 
 	gWVPLocation = glGetUniformLocation(ShaderProgram, "gWVP");
 	assert(gWVPLocation != 0xFFFFFFFF);
+	m_WorldMatrixLocation = glGetUniformLocation(ShaderProgram, "gWorld");
+	assert(m_WorldMatrixLocation != 0xFFFFFFFF);
 	gSampler = glGetUniformLocation(ShaderProgram, "gSampler");
 	assert(gSampler != 0xFFFFFFFF);
 	m_dirLightColorLocation = glGetUniformLocation(ShaderProgram, "gDirectionalLight.Color");
 	assert(m_dirLightColorLocation != 0xFFFFFFFF);
 	m_dirLightAmbientIntensityLocation = glGetUniformLocation(ShaderProgram, "gDirectionalLight.AmbientIntensity");
 	assert(m_dirLightAmbientIntensityLocation != 0xFFFFFFFF);
+	m_dirLightLocationDirection = glGetUniformLocation(ShaderProgram, "gDirectionalLight.Direction");
+	assert(m_dirLightLocationDirection != 0xFFFFFFFF);
+	m_dirLightLocationDiffuseIntensity = glGetUniformLocation(ShaderProgram, "gDirectionalLight.DiffuseIntensity");
+	assert(m_dirLightLocationDiffuseIntensity != 0xFFFFFFFF);
 }
 int main(int argc, char** argv){
 	Magick::InitializeMagick(*argv);
@@ -304,14 +364,17 @@ int main(int argc, char** argv){
 		Vertex(glm::fvec3(1.0f, -1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
 		Vertex(glm::fvec3(0.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f))
 	};
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 
 	unsigned int Indices[] = {0, 3, 1,
 							   1, 3, 2,
 							   2, 3, 0,
 							   1, 2, 0};
+
+	CalcNormals(Indices, 12, Vertices, 4);
+
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
 
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
