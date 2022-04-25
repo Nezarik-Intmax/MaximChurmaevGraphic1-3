@@ -230,14 +230,14 @@ void RenderSceneCB(){
 
 	*m_transformation = glm::transpose(WorldPers * WorldPos * WorldRot * WorldScl);
 	
-	*World = WorldPos * WorldRot * WorldScl;
+	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 
 	DirectionalLight Light;
 	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
 	Light.AmbientIntensity = 0.0f;
-	Light.Direction = glm::vec3(1.0f, 1.0f, 1.0f);
+	Light.Direction = glm::vec3(1.0f, 1.0f, 0.0f);
 	Light.DiffuseIntensity = 0.75f;
 	glUniform3f(m_dirLightColorLocation, Light.Color.x, Light.Color.y, Light.Color.z);
 	glUniform1f(m_dirLightAmbientIntensityLocation, Light.AmbientIntensity);
