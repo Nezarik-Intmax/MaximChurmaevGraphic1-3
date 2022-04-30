@@ -451,51 +451,13 @@ void RenderSceneCB(){
 	glUniform1f(m_matSpecularPowerLocation, ReflectPower);
 	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
 
-
-	/*PointLight pl[3];
-	pl[0].DiffuseIntensity = 0.5f;
-	pl[0].Color = glm::fvec3(1.0f, 0.0f, 0.0f);
-	pl[0].Position = glm::fvec3(sinf(m_scale) * 10, 1.0f, cosf(m_scale) * 10);
-	pl[0].Attenuation.Linear = 0.1f;
-
-	pl[1].DiffuseIntensity = 0.5f;
-	pl[1].Color = glm::fvec3(0.0f, 1.0f, 0.0f);
-	pl[1].Position = glm::fvec3(sinf(m_scale + 2.1f) * 10, 1.0f, cosf(m_scale + 2.1f) * 10);
-	pl[1].Attenuation.Linear = 0.1f;
-
-	pl[2].DiffuseIntensity = 0.5f;
-	pl[2].Color = glm::fvec3(0.0f, 0.0f, 1.0f);
-	pl[2].Position = glm::fvec3(sinf(m_scale + 4.2f) * 10, 1.0f, cosf(m_scale + 4.2f) * 10);
-	pl[2].Attenuation.Linear = 0.1f;
-	unsigned int NumLights = 3;
-	//PointLight* pl;
-	glUniform1i(m_numPointLightsLocation, NumLights);
-
-	for (unsigned int i = 0; i < NumLights; i++) {
-		glUniform3f(m_pointLightsLocation[i].Color, pl[i].Color.x, pl[i].Color.y, pl[i].Color.z);
-		glUniform1f(m_pointLightsLocation[i].AmbientIntensity, pl[i].AmbientIntensity);
-		glUniform1f(m_pointLightsLocation[i].DiffuseIntensity, pl[i].DiffuseIntensity);
-		glUniform3f(m_pointLightsLocation[i].Position, pl[i].Position.x, pl[i].Position.y, pl[i].Position.z);
-		glUniform1f(m_pointLightsLocation[i].Atten.Constant, pl[i].Attenuation.Constant);
-		glUniform1f(m_pointLightsLocation[i].Atten.Linear, pl[i].Attenuation.Linear);
-		glUniform1f(m_pointLightsLocation[i].Atten.Exp, pl[i].Attenuation.Exp);
-	}*/
-
 	SpotLight sl[2];
 	sl[0].DiffuseIntensity = 5.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.7f);
 	sl[0].Position = glm::fvec3(0.3f, -0.5f, -0.0f);
-	sl[0].Direction = glm::fvec3(sinf(m_scale), 0.0f, cosf(m_scale));
 	sl[0].Direction = glm::fvec3(0.0f, 0.0f, 1.0f);
 	sl[0].Attenuation.Linear = 0.1f;
 	sl[0].Cutoff = 10.0f;
-
-	/*sl[1].DiffuseIntensity = 15.0f;
-	sl[1].Color = glm::fvec3(0.0f, 1.0f, 1.0f);
-	sl[1].Position = m_camera.Pos;
-	sl[1].Direction = m_camera.Target;
-	sl[1].Attenuation.Linear = 0.1f;
-	sl[1].Cutoff = 45.0f;*/
 	glUniform1i(m_numSpotLightsLocation, 1);
 
 	for (unsigned int i = 0; i < 2; i++) {
