@@ -412,36 +412,6 @@ void RenderSceneCB(){
 	rotate += 0.01f;
 	m_scale += 0.001f;
 
-	SpotLight sl[2];
-	sl[0].DiffuseIntensity = 15.0f;
-	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.7f);
-	sl[0].Position = glm::fvec3(-0.0f, -1.9f, -0.0f);
-	sl[0].Direction = glm::fvec3(sinf(m_scale), 0.0f, cosf(m_scale));
-	sl[0].Attenuation.Linear = 0.1f;
-	sl[0].Cutoff = 20.0f;
-
-	sl[1].DiffuseIntensity = 5.0f;
-	sl[1].Color = glm::fvec3(0.0f, 1.0f, 1.0f);
-	sl[1].Position = m_camera.Pos;
-	sl[1].Direction = m_camera.Target;
-	sl[1].Attenuation.Linear = 0.1f;
-	sl[1].Cutoff = 10.0f;
-	glUniform1i(m_numSpotLightsLocation, 2);
-
-	for (unsigned int i = 0; i < 2; i++) {
-		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
-		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
-		glUniform1f(m_spotLightsLocation[i].DiffuseIntensity, sl[i].DiffuseIntensity);
-		glUniform3f(m_spotLightsLocation[i].Position, sl[i].Position.x, sl[i].Position.y, sl[i].Position.z);
-		glm::fvec3 Direction = sl[i].Direction;
-		Direction = glm::normalize(Direction);
-		glUniform3f(m_spotLightsLocation[i].Direction, Direction.x, Direction.y, Direction.z);
-		glUniform1f(m_spotLightsLocation[i].Cutoff, cosf(ToRadian(sl[i].Cutoff)));
-		glUniform1f(m_spotLightsLocation[i].Atten.Constant, sl[i].Attenuation.Constant);
-		glUniform1f(m_spotLightsLocation[i].Atten.Linear, sl[i].Attenuation.Linear);
-		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
-	}
-
 
 	glm::fmat4 WorldScl;
 	glm::fmat4 WorldRot;
@@ -510,6 +480,37 @@ void RenderSceneCB(){
 		glUniform1f(m_pointLightsLocation[i].Atten.Linear, pl[i].Attenuation.Linear);
 		glUniform1f(m_pointLightsLocation[i].Atten.Exp, pl[i].Attenuation.Exp);
 	}*/
+
+	SpotLight sl[2];
+	sl[0].DiffuseIntensity = 5.0f;
+	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.7f);
+	sl[0].Position = glm::fvec3(0.3f, -0.5f, -0.0f);
+	sl[0].Direction = glm::fvec3(sinf(m_scale), 0.0f, cosf(m_scale));
+	sl[0].Direction = glm::fvec3(0.0f, 0.0f, 1.0f);
+	sl[0].Attenuation.Linear = 0.1f;
+	sl[0].Cutoff = 10.0f;
+
+	/*sl[1].DiffuseIntensity = 15.0f;
+	sl[1].Color = glm::fvec3(0.0f, 1.0f, 1.0f);
+	sl[1].Position = m_camera.Pos;
+	sl[1].Direction = m_camera.Target;
+	sl[1].Attenuation.Linear = 0.1f;
+	sl[1].Cutoff = 45.0f;*/
+	glUniform1i(m_numSpotLightsLocation, 1);
+
+	for (unsigned int i = 0; i < 2; i++) {
+		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
+		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
+		glUniform1f(m_spotLightsLocation[i].DiffuseIntensity, sl[i].DiffuseIntensity);
+		glUniform3f(m_spotLightsLocation[i].Position, sl[i].Position.x, sl[i].Position.y, sl[i].Position.z);
+		glm::fvec3 Direction = sl[i].Direction;
+		Direction = glm::normalize(Direction);
+		glUniform3f(m_spotLightsLocation[i].Direction, Direction.x, Direction.y, Direction.z);
+		glUniform1f(m_spotLightsLocation[i].Cutoff, cosf(ToRadian(sl[i].Cutoff)));
+		glUniform1f(m_spotLightsLocation[i].Atten.Constant, sl[i].Attenuation.Constant);
+		glUniform1f(m_spotLightsLocation[i].Atten.Linear, sl[i].Attenuation.Linear);
+		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
+	}
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -632,9 +633,9 @@ static void CompileShaders(){
 	for (unsigned int i = 0; i < MAX_POINT_LIGHTS; i++) {
 		char Name[128];
 		memset(Name, 0, sizeof(Name));
-		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Base..Color", i);
+		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Base.Color", i);
 		m_spotLightsLocation[i].Color = glGetUniformLocation(ShaderProgram, Name);
-		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Base..AmbientIntensity", i);
+		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Base.AmbientIntensity", i);
 		m_spotLightsLocation[i].AmbientIntensity = glGetUniformLocation(ShaderProgram, Name);
 		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Position", i);
 		m_spotLightsLocation[i].Position = glGetUniformLocation(ShaderProgram, Name);
