@@ -14,7 +14,7 @@
 #define M_PI 3.14159265358979323846
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
-#define MAX_POINT_LIGHTS 5
+#define MAX_POINT_LIGHTS 3
 class Texture
 {
 public:
@@ -212,19 +212,20 @@ static const char* pFS = "                                                      
 in vec2 TexCoord0;																	\n\
 in vec3 Normal0;                                                                    \n\
 in vec3 WorldPos0;																	\n\
+const int MAX_POINT_LIGHTS = 3;                                                     \n\
 																					\n\
 out vec4 FragColor;																	\n\
 																					\n\
 struct BaseLight                                                                    \n\
 {                                                                                   \n\
-vec3 Color;																			\n\
-float AmbientIntensity;																\n\
-float DiffuseIntensity;																\n\
+	vec3 Color;																		\n\
+	float AmbientIntensity;															\n\
+	float DiffuseIntensity;															\n\
 };                                                                                  \n\
 																					\n\
 struct DirectionalLight                                                             \n\
 {                                                                                   \n\
-	struct BaseLight Base;															\n\
+	BaseLight Base;																	\n\
 	vec3 Direction;                                                                 \n\
 };                                                                                  \n\
 																					\n\
@@ -237,21 +238,21 @@ float Exp;																			\n\
 																					\n\
 struct PointLight                                                                   \n\
 {                                                                                   \n\
-struct BaseLight Base;                                                              \n\
+	BaseLight Base;							                                        \n\
 	vec3 Position;                                                                  \n\
 	Attenuation Atten;                                                              \n\
 };																					\n\
 																					\n\
 uniform int gNumPointLights;                                                        \n\
 uniform DirectionalLight gDirectionalLight;                                         \n\
-uniform PointLight gPointLights[MAX_POINT_LIGHTS]									\n\
+uniform PointLight gPointLights[MAX_POINT_LIGHTS];									\n\
 uniform sampler2D gSampler;															\n\
                                                                                     \n\
 uniform vec3 gEyeWorldPos;                                                          \n\
 uniform float gMatSpecularIntensity;                                                \n\
 uniform float gSpecularPower;                                                       \n\
 																					\n\
-vec4 CalcLightInternal(struct BaseLight Light, vec3 LightDirection, vec3 Normal)					\n\
+vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal)							\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
 	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
@@ -358,7 +359,7 @@ void RenderSceneCB(){
 	static float rotate = 0.0f;
 	static float m_scale = 0.0f;
 	rotate += 0.01f;
-	m_scale += 0.01f;
+	m_scale += 0.001f;
 	glm::fmat4 WorldScl;
 	glm::fmat4 WorldRot;
 	glm::fmat4 WorldPos;
@@ -525,6 +526,24 @@ static void CompileShaders(){
 	assert(m_matSpecularPowerLocation != 0xFFFFFFFF);
 	m_numPointLightsLocation = glGetUniformLocation(ShaderProgram, "gNumPointLights");
 	assert(m_numPointLightsLocation != 0xFFFFFFFF);
+	for (unsigned int i = 0; i < MAX_POINT_LIGHTS; i++) {
+		char Name[128];
+		memset(Name, 0, sizeof(Name));
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Base.Color", i);
+		m_pointLightsLocation[i].Color = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Base.AmbientIntensity", i);
+		m_pointLightsLocation[i].AmbientIntensity = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Position", i);
+		m_pointLightsLocation[i].Position = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Base.DiffuseIntensity", i);
+		m_pointLightsLocation[i].DiffuseIntensity = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Atten.Constant", i);
+		m_pointLightsLocation[i].Atten.Constant = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Atten.Linear", i);
+		m_pointLightsLocation[i].Atten.Linear = glGetUniformLocation(ShaderProgram, Name);
+		snprintf(Name, sizeof(Name), "gPointLights[%d].Atten.Exp", i);
+		m_pointLightsLocation[i].Atten.Exp = glGetUniformLocation(ShaderProgram, Name);
+	}
 }
 int main(int argc, char** argv){
 	Magick::InitializeMagick(*argv);
