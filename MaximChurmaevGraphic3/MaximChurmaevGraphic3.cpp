@@ -22,22 +22,6 @@ void SetCamera(const glm::fvec3& Pos, const glm::fvec3& Target, const glm::fvec3
 	m_camera.Target = Target;
 	m_camera.Up = Up;
 }
-glm::fvec3 Cross(const glm::fvec3& b, const glm::fvec3& v){
-	const float _x = b.y * v.z - b.z * v.y;
-	const float _y = b.z * v.x - b.x * v.z;
-	const float _z = b.x * v.y - b.y * v.x;
-
-	return glm::fvec3(_x, _y, _z);
-}
-glm::fvec3& Normalize(glm::fvec3& b){
-	const float Length = sqrtf(b.x * b.x + b.y * b.y + b.z * b.z);
-
-	b.x /= Length;
-	b.y /= Length;
-	b.z /= Length;
-
-	return b;
-}
 void CameraTransform(const glm::fvec3& Target, const glm::fvec3& Up, glm::fmat4& m){
 	glm::fvec3 N = Target;
 	N = glm::normalize(N);
@@ -45,8 +29,8 @@ void CameraTransform(const glm::fvec3& Target, const glm::fvec3& Up, glm::fmat4&
 	glm::fvec3 U = Up;
 	U = glm::normalize(U);
 	//U.Normalize();
-	U = Cross(U, Target);
-	glm::fvec3 V = Cross(N, U);
+	U = cross(U, Target);
+	glm::fvec3 V = cross(N, U);
 
 	m[0][0] = U.x; m[0][1] = U.y; m[0][2] = U.z; m[0][3] = 0.0f;
 	m[1][0] = V.x; m[1][1] = V.y; m[1][2] = V.z; m[1][3] = 0.0f;
@@ -155,9 +139,13 @@ void RenderSceneCB(){
 	glUniformMatrix4fv(gWorldLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 
 	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
 	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
+	glDisableVertexAttribArray(0);
 
 	glutSwapBuffers();
 }
