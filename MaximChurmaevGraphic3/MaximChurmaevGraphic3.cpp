@@ -352,7 +352,7 @@ void main()																							\n\
 	}																								\n\
 																									\n\
     FragColor = texture2D(gSampler, TexCoord0.xy) * TotalLight;										\n\
-};";
+};"; 
 
 
 void Pers(glm::fmat4& m, float zNear, float zFar, float width, float height, float fov){
