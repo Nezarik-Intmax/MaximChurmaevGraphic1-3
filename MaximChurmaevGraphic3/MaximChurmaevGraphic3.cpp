@@ -516,8 +516,8 @@ void RenderSceneCB(){
 	SpotLight sl[1];
 	sl[0].DiffuseIntensity = 5.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.7f);
-	sl[0].Position = glm::fvec3(0.3f, -0.5f, -0.0f);
-	sl[0].Direction = glm::fvec3(0.0f, 0.0f, 1.0f);
+	sl[0].Position = glm::fvec3(-3.0f, 0.5f, 0.0f);
+	sl[0].Direction = glm::fvec3(0.5f, 0.0f, 1.0f);
 	sl[0].Attenuation.Linear = 0.1f;
 	sl[0].Cutoff = 10.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
@@ -594,7 +594,7 @@ void RenderSceneCB(){
 
 	DirectionalLight Light;
 	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
-	Light.AmbientIntensity = 0.0f;
+	Light.AmbientIntensity = 1.0f;
 	Light.Direction = glm::vec3(1.0f, 1.0f, 0.0f);
 	Light.DiffuseIntensity = 0.75f;
 	glUniform3f(m_dirLightColorLocation, Light.Color.x, Light.Color.y, Light.Color.z);
