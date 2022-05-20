@@ -272,6 +272,7 @@ GLuint gSampler;
 glm::fmat4* m_transformation = new glm::fmat4();
 glm::fmat4* World = new glm::fmat4();
 ShadowMapFBO m_shadowMapFBO;
+SpotLight sl[1];
 
 GLuint ShaderShadowProgram; //24
 GLuint ShaderProgram; //24
@@ -528,7 +529,8 @@ void Scale(glm::fmat4& WorldScl, GLfloat x, GLfloat y, GLfloat z){
 void RenderSceneCB(){
 	static float rotate = 0.0f;
 	static float m_scale = 0.0f;
-	//rotate += 0.01f;
+	rotate += 0.01f;
+	glUseProgram(ShaderShadowProgram);
 	m_scale += 0.001f;
 	glm::fmat4 WorldScl;
 	glm::fmat4 WorldRot;
@@ -538,7 +540,7 @@ void RenderSceneCB(){
 	glm::fmat4 WorldPers;
 
 
-	SpotLight sl[1];
+	/*SpotLight sl[1];
 	sl[0].DiffuseIntensity = 2.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.8f);
 	sl[0].Position = glm::fvec3(-1.3f, 1.0f, 5.0f);
@@ -547,7 +549,6 @@ void RenderSceneCB(){
 	sl[0].Cutoff = 50.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 
-	glUseProgram(ShaderShadowProgram);
 	for (unsigned int i = 0; i < 1; i++) {
 		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
 		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
@@ -562,37 +563,38 @@ void RenderSceneCB(){
 		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
 
 
-		m_shadowMapFBO.BindForWriting();
+	}*/
+	m_shadowMapFBO.BindForWriting();
 
-		glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT);
 
-		Scale(WorldScl, 0.1f, 0.1f, 0.1f);
-		RotateY(WorldRot, rotate);
-		Translate(WorldPos, 0.0f, 0.0f, 5.0f);
-		SetCamera(sl[i].Position, sl[i].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
-		CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
-		Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 20.0f);
-		*World = glm::transpose(WorldPos * WorldRot * WorldScl);
-		*m_transformation = glm::transpose(WorldPers * CameraRot * CameraPos * glm::transpose(*World));
-		glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
+	RotateY(WorldRot, rotate);
+	Translate(WorldPos, 0.0f, 0.0f, 5.0f);
+	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
+	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
+	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
+	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);//WorldPers, 1.0f, 50.0f, 1024, 768, 20.0f);
+	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
+	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
+	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 
-		glEnableVertexAttribArray(0);
-		glEnableVertexAttribArray(1);
-		glEnableVertexAttribArray(2);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
-		pTexture->Bind(GL_TEXTURE0);
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	pTexture->Bind(GL_TEXTURE0);
 
-		glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
 
-		glDisableVertexAttribArray(0);
-		glDisableVertexAttribArray(1);
-		glDisableVertexAttribArray(2);
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
@@ -601,28 +603,38 @@ void RenderSceneCB(){
 	glUseProgram(ShaderProgram);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUniform1i(m_textureLocation, 0);
-	// m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
+	//m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
 	m_shadowMapFBO.BindForReading(GL_TEXTURE1); //24
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
 	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
-
-	glm::fvec3 CameraPos_(0.0f, 0.0f, 0.0f);
-	glm::fvec3 CameraTarget(0.0f, 0.0f, 1.0f);
+	//glm::fvec3(-1.3f, 1.0f, 5.0f);
+	//glm::fvec3(0.5f, -1.0f, 0.0f);
+	glm::fvec3 CameraPos_(-5.3f, 5.0f, 5.0f);//(0.0f, 0.0f, 0.0f);
+	glm::fvec3 CameraTarget(0.5f, -1.0f, 0.0f); //(0.0f, 0.0f, 1.0f);
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
 	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
 
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
-	*m_transformation = glm::transpose(WorldPers * CameraRot * CameraPos * glm::transpose(*World));
+	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 
-	DirectionalLight Light;
+
+
+	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));	//24
+	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
+	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
+	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World)); //24
+	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);	//24
+
+
+	/*DirectionalLight Light;
 	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
 	Light.AmbientIntensity = 1.0f;
 	Light.Direction = glm::vec3(1.0f, 1.0f, 0.0f);
@@ -638,7 +650,7 @@ void RenderSceneCB(){
 	float ReflectPower = 32.0f;
 	glUniform1f(m_matSpecularIntensityLocation, ReflectIntensity);
 	glUniform1f(m_matSpecularPowerLocation, ReflectPower);
-	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
+	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);*/
 
 
 	glEnableVertexAttribArray(0);
@@ -659,7 +671,7 @@ void RenderSceneCB(){
 	glutSwapBuffers();
 }
 
-static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType){
+static void AddShader(GLuint ShaderProgram_, const char* pShaderText, GLenum ShaderType){
 	GLuint ShaderObj = glCreateShader(ShaderType);
 
 	if (ShaderObj == 0) {
@@ -682,7 +694,7 @@ static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum Shad
 		exit(1);
 	}
 
-	glAttachShader(ShaderProgram, ShaderObj);
+	glAttachShader(ShaderProgram_, ShaderObj);
 }
 
 static void CompileShadowShaders() {
@@ -717,8 +729,8 @@ static void CompileShadowShaders() {
 
 	glUseProgram(ShaderShadowProgram);
 
-	m_WVPLocation = glGetUniformLocation(ShaderProgram, "gWVP");
-	m_textureLocation = glGetUniformLocation(ShaderProgram, "gShadowMap");
+	m_WVPLocation = glGetUniformLocation(ShaderShadowProgram, "gWVP");
+	m_textureLocation = glGetUniformLocation(ShaderShadowProgram, "gShadowMap");
 }
 
 static void CompileShaders(){
@@ -831,7 +843,7 @@ int main(int argc, char** argv){
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(1024, 768);
 	glutInitWindowPosition(100, 100);
-	glutCreateWindow("Tutorial 21");
+	glutCreateWindow("Tutorial 24");
 	glutDisplayFunc(RenderSceneCB);
 	glutIdleFunc(RenderSceneCB);
 
@@ -882,7 +894,35 @@ int main(int argc, char** argv){
 	SetCamera(CameraPos, CameraTarget, CameraUp);
 
 	CompileShadowShaders();
+
+	if(!m_shadowMapFBO.Init(1024, 768)){
+		return false;
+	}
 	CompileShaders();
+
+	sl[0].DiffuseIntensity = 2.0f;
+	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.8f);
+	sl[0].Position = glm::fvec3(-1.3f, 1.0f, 5.0f);
+	sl[0].Direction = glm::fvec3(0.5f, -1.0f, 0.0f);
+	sl[0].Attenuation.Linear = 0.1f;
+	sl[0].Cutoff = 10.0f;
+	glUniform1i(m_numSpotLightsLocation, 1);
+
+	for(unsigned int i = 0; i < 1; i++){
+		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
+		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
+		glUniform1f(m_spotLightsLocation[i].DiffuseIntensity, sl[i].DiffuseIntensity);
+		glUniform3f(m_spotLightsLocation[i].Position, sl[i].Position.x, sl[i].Position.y, sl[i].Position.z);
+		glm::fvec3 Direction = sl[i].Direction;
+		Direction = glm::normalize(Direction);
+		glUniform3f(m_spotLightsLocation[i].Direction, Direction.x, Direction.y, Direction.z);
+		glUniform1f(m_spotLightsLocation[i].Cutoff, cosf(ToRadian(sl[i].Cutoff)));
+		glUniform1f(m_spotLightsLocation[i].Atten.Constant, sl[i].Attenuation.Constant);
+		glUniform1f(m_spotLightsLocation[i].Atten.Linear, sl[i].Attenuation.Linear);
+		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
+
+
+	}
 	glUniform1i(gSampler, 0);
 	//glUniform1i(m_samplerLocation, 0); //24
 	glUniform1i(m_shadowMapLocation, 1); //24
