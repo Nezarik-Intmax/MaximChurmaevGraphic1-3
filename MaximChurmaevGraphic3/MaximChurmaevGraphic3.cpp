@@ -279,8 +279,6 @@ GLuint ShaderProgram; //24
 
 GLuint m_WVPLocation;
 GLuint m_textureLocation;
-void SetLightWVP(const glm::fmat4& LightWVP){}
-void SetShadowMapTextureUnit(unsigned int TextureUnit){}
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -877,7 +875,7 @@ int main(int argc, char** argv){
 							   2, 3, 0,
 							   1, 2, 0};
 
-	CalcNormals(Indices, 12, Vertices, 4);
+	CalcNormals(Indices, 18, Vertices, 8);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -901,11 +899,11 @@ int main(int argc, char** argv){
 	CompileShaders();
 
 	sl[0].DiffuseIntensity = 2.0f;
-	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.8f);
+	sl[0].Color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	sl[0].Position = glm::fvec3(-1.3f, 1.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.5f, -1.0f, 0.0f);
 	sl[0].Attenuation.Linear = 0.1f;
-	sl[0].Cutoff = 10.0f;
+	sl[0].Cutoff = 50.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 
 	for(unsigned int i = 0; i < 1; i++){
