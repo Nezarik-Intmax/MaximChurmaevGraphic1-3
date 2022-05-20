@@ -264,15 +264,22 @@ GLuint m_matSpecularIntensityLocation;
 GLuint m_matSpecularPowerLocation;
 GLuint m_numPointLightsLocation;
 GLuint m_numSpotLightsLocation;
+//GLuint m_samplerLocation; //24
+GLuint m_LightWVPLocation; //24
+GLuint m_shadowMapLocation; //24
 Texture* pTexture = NULL;
 GLuint gSampler;
 glm::fmat4* m_transformation = new glm::fmat4();
 glm::fmat4* World = new glm::fmat4();
 ShadowMapFBO m_shadowMapFBO;
 
+GLuint ShaderShadowProgram; //24
+GLuint ShaderProgram; //24
+
 GLuint m_WVPLocation;
 GLuint m_textureLocation;
-
+void SetLightWVP(const glm::fmat4& LightWVP){}
+void SetShadowMapTextureUnit(unsigned int TextureUnit){}
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -281,15 +288,18 @@ layout(location = 1) in vec2 TexCoord;												\n\
 layout(location = 2) in vec3 Normal;												\n\
 																					\n\
 uniform mat4 gWVP;																	\n\
+uniform mat4 gLightWVP;																\n\
 uniform mat4 gWorld;																\n\
 																					\n\
 out vec2 TexCoord0;																	\n\
 out vec3 Normal0;                                                                   \n\
 out vec3 WorldPos0;																	\n\
+out vec4 LightSpacePos;																\n\
 																					\n\
 void main()																			\n\
 {																					\n\
 	gl_Position = gWVP * vec4(Position, 1.0);										\n\
+	LightSpacePos = gLightWVP * vec4(Position, 1.0);									\n\
 	TexCoord0 = TexCoord;															\n\
 	Normal0 = (gWorld * vec4(Normal, 0.0)).xyz;										\n\
 	WorldPos0   = (gWorld * vec4(Position, 1.0)).xyz;								\n\
@@ -301,6 +311,7 @@ static const char* pFS = "                                                      
 in vec2 TexCoord0;																	\n\
 in vec3 Normal0;                                                                    \n\
 in vec3 WorldPos0;																	\n\
+in vec4 LightSpacePos;                                                              \n\
 const int MAX_POINT_LIGHTS = 3;                                                     \n\
 																					\n\
 out vec4 FragColor;																	\n\
@@ -345,12 +356,25 @@ uniform DirectionalLight gDirectionalLight;                                     
 uniform PointLight gPointLights[MAX_POINT_LIGHTS];									\n\
 uniform SpotLight gSpotLights[MAX_POINT_LIGHTS];									\n\
 uniform sampler2D gSampler;															\n\
+uniform sampler2D gShadowMap;															\n\
                                                                                     \n\
 uniform vec3 gEyeWorldPos;                                                          \n\
 uniform float gMatSpecularIntensity;                                                \n\
 uniform float gSpecularPower;                                                       \n\
 																					\n\
-vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal)							\n\
+float CalcShadowFactor(vec4 LightSpacePos){															\n\
+	vec3 ProjCoords = LightSpacePos.xyz / LightSpacePos.w;											\n\
+	vec2 UVCoords;																					\n\
+	UVCoords.x = 0.5 * ProjCoords.x + 0.5;															\n\
+	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
+	float z = 0.5 * ProjCoords.z + 0.5;																\n\
+	float Depth = texture(gShadowMap, UVCoords).x;													\n\
+	if(Depth < (z + 0.00001))																		\n\
+		return 0.5;																					\n\
+	else																							\n\
+		return 1.0;																					\n\
+}																									\n\
+vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float ShadowFactor)		\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
 	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
@@ -370,32 +394,33 @@ vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal)							
 		}																							\n\
 	}																								\n\
 																									\n\
-	return (AmbientColor + DiffuseColor + SpecularColor);											\n\
+	return (AmbientColor + ShadowFactor * (DiffuseColor + SpecularColor));							\n\
 }																									\n\
 vec4 CalcDirectionalLight(vec3 Normal)																\n\
 {																									\n\
-    return CalcLightInternal(gDirectionalLight.Base, gDirectionalLight.Direction, Normal);			\n\
+    return CalcLightInternal(gDirectionalLight.Base, gDirectionalLight.Direction, Normal, 1.0);		\n\
 }																									\n\
-vec4 CalcPointLight(PointLight l, vec3 Normal)														\n\
+vec4 CalcPointLight(PointLight l, vec3 Normal, vec4 LightSpacePos)									\n\
 {																									\n\
 	vec3 LightDirection = WorldPos0 - l.Position;													\n\
 	float Distance = length(LightDirection);														\n\
 	LightDirection = normalize(LightDirection);														\n\
+	float ShadowFactor = CalcShadowFactor(LightSpacePos);											\n\
 																									\n\
-	vec4 Color = CalcLightInternal(l.Base, LightDirection, Normal);									\n\
+	vec4 Color = CalcLightInternal(l.Base, LightDirection, Normal, ShadowFactor);					\n\
 	float Attenuation = l.Atten.Constant +															\n\
 		l.Atten.Linear * Distance +																	\n\
 		l.Atten.Exp * Distance * Distance;															\n\
 																									\n\
 	return Color / Attenuation;																		\n\
 }																									\n\
-vec4 CalcSpotLight(SpotLight l, vec3 Normal)														\n\
+vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)														\n\
 {																									\n\
 	vec3 LightToPixel = normalize(WorldPos0 - l.Base.Position);										\n\
 	float SpotFactor = dot(LightToPixel, l.Direction);												\n\
 																									\n\
 	if (SpotFactor > l.Cutoff) {																	\n\
-		vec4 Color = CalcPointLight(l.Base, Normal);												\n\
+		vec4 Color = CalcPointLight(l.Base, Normal, LightSpacePos);									\n\
 		return Color * (1.0 - (1.0 - SpotFactor) * 1.0 / (1.0 - l.Cutoff));							\n\
 	}																								\n\
 	else {																							\n\
@@ -408,10 +433,10 @@ void main()																							\n\
     vec4 TotalLight = CalcDirectionalLight(Normal);													\n\
 																									\n\
     for (int i = 0 ; i < gNumPointLights ; i++) {													\n\
-        TotalLight += CalcPointLight(gPointLights[i], Normal);										\n\
+        TotalLight += CalcPointLight(gPointLights[i], Normal, LightSpacePos);						\n\
     }																								\n\
 	for (int i = 0 ; i < gNumSpotLights ; i++) {													\n\
-		TotalLight += CalcSpotLight(gSpotLights[i], Normal);										\n\
+		TotalLight += CalcSpotLight(gSpotLights[i], Normal, LightSpacePos);							\n\
 	}																								\n\
 																									\n\
     FragColor = texture2D(gSampler, TexCoord0.xy) * TotalLight;										\n\
@@ -449,7 +474,6 @@ void main()                                                                     
     Depth = 1.0 - (1.0 - Depth) * 25.0;                                             \n\
     FragColor = vec4(Depth);                                                        \n\
 }";
-
 
 void Pers(glm::fmat4& m, float zNear, float zFar, float width, float height, float fov){
 	const float ar = width / height;
@@ -523,6 +547,7 @@ void RenderSceneCB(){
 	sl[0].Cutoff = 50.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 
+	glUseProgram(ShaderShadowProgram);
 	for (unsigned int i = 0; i < 1; i++) {
 		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
 		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
@@ -542,7 +567,7 @@ void RenderSceneCB(){
 		glClear(GL_DEPTH_BUFFER_BIT);
 
 		Scale(WorldScl, 0.1f, 0.1f, 0.1f);
-		RotateY(WorldRot, 0.0f /*rotate*/);
+		RotateY(WorldRot, rotate);
 		Translate(WorldPos, 0.0f, 0.0f, 5.0f);
 		SetCamera(sl[i].Position, sl[i].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
 		CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
@@ -550,32 +575,34 @@ void RenderSceneCB(){
 		*World = glm::transpose(WorldPos * WorldRot * WorldScl);
 		*m_transformation = glm::transpose(WorldPers * CameraRot * CameraPos * glm::transpose(*World));
 		glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+
+		glEnableVertexAttribArray(0);
+		glEnableVertexAttribArray(1);
+		glEnableVertexAttribArray(2);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+		glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+		pTexture->Bind(GL_TEXTURE0);
+
+		glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
+
+		glDisableVertexAttribArray(0);
+		glDisableVertexAttribArray(1);
+		glDisableVertexAttribArray(2);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
 
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
-	pTexture->Bind(GL_TEXTURE0);
-
-	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
-
+	glUseProgram(ShaderProgram);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUniform1i(m_textureLocation, 0);
-	m_shadowMapFBO.BindForReading(GL_TEXTURE0);
+	// m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
+	m_shadowMapFBO.BindForReading(GL_TEXTURE1); //24
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
@@ -659,43 +686,43 @@ static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum Shad
 }
 
 static void CompileShadowShaders() {
-	GLuint ShaderProgram = glCreateProgram();
+	ShaderShadowProgram = glCreateProgram();
 
-	if (ShaderProgram == 0) {
+	if (ShaderShadowProgram == 0) {
 		fprintf(stderr, "Error creating shader program\n");
 		exit(1);
 	}
 
-	AddShader(ShaderProgram, shadow_pVS, GL_VERTEX_SHADER);
-	AddShader(ShaderProgram, shadow_pFS, GL_FRAGMENT_SHADER);
+	AddShader(ShaderShadowProgram, shadow_pVS, GL_VERTEX_SHADER);
+	AddShader(ShaderShadowProgram, shadow_pFS, GL_FRAGMENT_SHADER);
 
 	GLint Success = 0;
 	GLchar ErrorLog[1024] = { 0 };
 
-	glLinkProgram(ShaderProgram);
-	glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
+	glLinkProgram(ShaderShadowProgram);
+	glGetProgramiv(ShaderShadowProgram, GL_LINK_STATUS, &Success);
 	if (Success == 0) {
-		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
+		glGetProgramInfoLog(ShaderShadowProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
 		exit(1);
 	}
 
-	glValidateProgram(ShaderProgram);
-	glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
+	glValidateProgram(ShaderShadowProgram);
+	glGetProgramiv(ShaderShadowProgram, GL_VALIDATE_STATUS, &Success);
 	if (!Success) {
-		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
+		glGetProgramInfoLog(ShaderShadowProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
 		exit(1);
 	}
 
-	glUseProgram(ShaderProgram);
+	glUseProgram(ShaderShadowProgram);
 
 	m_WVPLocation = glGetUniformLocation(ShaderProgram, "gWVP");
 	m_textureLocation = glGetUniformLocation(ShaderProgram, "gShadowMap");
 }
 
 static void CompileShaders(){
-	GLuint ShaderProgram = glCreateProgram();
+	ShaderProgram = glCreateProgram();
 
 	if (ShaderProgram == 0) {
 		fprintf(stderr, "Error creating shader program\n");
@@ -748,6 +775,12 @@ static void CompileShaders(){
 	assert(m_matSpecularPowerLocation != 0xFFFFFFFF);
 	m_numPointLightsLocation = glGetUniformLocation(ShaderProgram, "gNumPointLights");
 	assert(m_numPointLightsLocation != 0xFFFFFFFF);
+	/*m_samplerLocation = glGetUniformLocation(ShaderProgram, "gSampler");
+	assert(m_samplerLocation != 0xFFFFFFFF);*/
+	m_LightWVPLocation = glGetUniformLocation(ShaderProgram, "gLightWVP");
+	assert(m_LightWVPLocation != 0xFFFFFFFF);
+	m_shadowMapLocation = glGetUniformLocation(ShaderProgram, "gShadowMap");
+	assert(m_shadowMapLocation != 0xFFFFFFFF);
 	for (unsigned int i = 0; i < MAX_POINT_LIGHTS; i++) {
 		char Name[128];
 		memset(Name, 0, sizeof(Name));
@@ -851,6 +884,8 @@ int main(int argc, char** argv){
 	CompileShadowShaders();
 	CompileShaders();
 	glUniform1i(gSampler, 0);
+	//glUniform1i(m_samplerLocation, 0); //24
+	glUniform1i(m_shadowMapLocation, 1); //24
 
 	pTexture = new Texture(GL_TEXTURE_2D, "C:\\l004.jpg");
 
