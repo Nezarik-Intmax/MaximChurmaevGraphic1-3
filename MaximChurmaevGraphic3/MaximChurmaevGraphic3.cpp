@@ -663,7 +663,7 @@ static void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum Shad
 	GLuint ShaderObj = glCreateShader(ShaderType);
 
 	if (ShaderObj == 0) {
-		fprintf(stderr, "Error creating shader type %d\n", ShaderType);
+		fprintf(stderr, "Error creating shader type %d\n", ShaderType); 
 		exit(0);
 	}
 
