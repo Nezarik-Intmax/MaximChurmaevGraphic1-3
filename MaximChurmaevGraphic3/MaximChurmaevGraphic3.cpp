@@ -15,6 +15,22 @@
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
 #define MAX_POINT_LIGHTS 3
+class ShadowMapFBO{
+public:
+	ShadowMapFBO();
+
+	~ShadowMapFBO();
+
+	bool Init(unsigned int WindowWidth, unsigned int WindowHeight);
+
+	void BindForWriting();
+
+	void BindForReading(GLenum TextureUnit);
+
+private:
+	GLuint m_fbo;
+	GLuint m_shadowMap;
+};
 class Texture
 {
 public:
