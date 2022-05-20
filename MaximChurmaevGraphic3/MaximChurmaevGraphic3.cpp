@@ -15,23 +15,19 @@
 #define ToRadian(x) ((x) * M_PI / 180.0f)
 #define ToDegree(x) ((x) * 180.0f / M_PI)
 #define MAX_POINT_LIGHTS 3
-class Texture
-{
+class Texture{
 public:
-	Texture(GLenum TextureTarget, const std::string& FileName)
-	{
+	Texture(GLenum TextureTarget, const std::string& FileName){
 		m_textureTarget = TextureTarget;
 		m_fileName = FileName;
 		m_pImage = NULL;
 	}
 
-	bool Load()
-	{
-		try {
+	bool Load(){
+		try{
 			m_pImage = new Magick::Image(m_fileName);
 			m_pImage->write(&m_blob, "RGBA");
-		}
-		catch (Magick::Error& Error) {
+		} catch(Magick::Error& Error){
 			std::cout << "Error loading texture '" << m_fileName << "': " << Error.what() << std::endl;
 			return false;
 		}
@@ -45,8 +41,7 @@ public:
 		return true;
 	}
 
-	void Bind(GLenum TextureUnit)
-	{
+	void Bind(GLenum TextureUnit){
 		glActiveTexture(TextureUnit);
 		glBindTexture(m_textureTarget, m_textureObj);
 	}
@@ -58,16 +53,14 @@ private:
 	Magick::Blob m_blob;
 };
 
-struct Vertex
-{
+struct Vertex{
 	glm::fvec3 m_pos;
 	glm::fvec2 m_tex;
 	glm::fvec3 m_normal;
 
-	Vertex() {}
+	Vertex(){}
 
-	Vertex(glm::fvec3 pos, glm::fvec2 tex)
-	{
+	Vertex(glm::fvec3 pos, glm::fvec2 tex){
 		m_pos = pos;
 		m_tex = tex;
 		m_normal = glm::fvec3(0.0f, 0.0f, 0.0f);
@@ -100,72 +93,65 @@ void CameraTransform(const glm::fvec3& Target, const glm::fvec3& Up, glm::fmat4&
 	m[3][0] = 0.0f; m[3][1] = 0.0f; m[3][2] = 0.0f; m[3][3] = 1.0f;
 	//m = glm::transpose(m);
 }
-struct BaseLight
-{
+struct BaseLight{
 	glm::fvec3 Color;
 	float AmbientIntensity;
 	float DiffuseIntensity;
 
-	BaseLight()
-	{
+	BaseLight(){
 		Color = glm::fvec3(0.0f, 0.0f, 0.0f);
 		AmbientIntensity = 0.0f;
 		DiffuseIntensity = 0.0f;
 	}
 };
-struct DirectionalLight : public BaseLight{
+struct DirectionalLight: public BaseLight{
 	glm::fvec3 Direction;
 };
-struct PointLight : public BaseLight {
+struct PointLight: public BaseLight{
 	glm::fvec3 Position;
 
-	struct
-	{
+	struct{
 		float Constant;
 		float Linear;
 		float Exp;
 	} Attenuation;
 
-	PointLight()
-	{
+	PointLight(){
 		Position = glm::fvec3(0.0f, 0.0f, 0.0f);
 		Attenuation.Constant = 1.0f;
 		Attenuation.Linear = 0.0f;
 		Attenuation.Exp = 0.0f;
 	}
 };
-struct SpotLight : public PointLight
-{
+struct SpotLight: public PointLight{
 	glm::fvec3 Direction;
 	float Cutoff;
 
-	SpotLight()
-	{
+	SpotLight(){
 		Direction = glm::fvec3(0.0f, 0.0f, 0.0f);
 		Cutoff = 0.0f;
 	}
 };
-struct {
+struct{
 	GLuint Color;
 	GLuint AmbientIntensity;
 	GLuint DiffuseIntensity;
 	GLuint Position;
-	struct
-	{
+	struct{
 		GLuint Constant;
 		GLuint Linear;
 		GLuint Exp;
 	} Atten;
 } m_pointLightsLocation[MAX_POINT_LIGHTS];
 
-struct {
+struct{
 	GLuint Color;
 	GLuint AmbientIntensity;
 	GLuint DiffuseIntensity;
 	GLuint Position;
 	GLuint Direction;
 	GLuint Cutoff;
-	struct {
+	struct{
 		GLuint Constant;
 		GLuint Linear;
 		GLuint Exp;
@@ -191,8 +177,7 @@ void CalcNormals(const unsigned int* pIndices, unsigned int IndexCount, Vertex* 
 		pVertices[i].m_normal = glm::normalize(pVertices[i].m_normal);
 	}
 }
-class ShadowMapFBO
-{
+class ShadowMapFBO{
 public:
 	ShadowMapFBO(){
 		m_fbo = 0;
@@ -200,11 +185,11 @@ public:
 	}
 
 	~ShadowMapFBO(){
-		if (m_fbo != 0) {
+		if(m_fbo != 0){
 			glDeleteFramebuffers(1, &m_fbo);
 		}
 
-		if (m_shadowMap != 0) {
+		if(m_shadowMap != 0){
 			glDeleteFramebuffers(1, &m_shadowMap);
 		}
 	}
@@ -228,7 +213,7 @@ public:
 
 		GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 
-		if (Status != GL_FRAMEBUFFER_COMPLETE) {
+		if(Status != GL_FRAMEBUFFER_COMPLETE){
 			printf("FB error, status: 0x%x\n", Status);
 			return false;
 		}
@@ -253,6 +238,8 @@ private:
 
 GLuint VBO;
 GLuint IBO;
+GLuint VBO2;
+GLuint IBO2;
 GLuint gWVPLocation;
 GLuint m_WorldMatrixLocation;
 GLuint m_dirLightColorLocation;
@@ -439,7 +426,7 @@ void main()																							\n\
 	}																								\n\
 																									\n\
     FragColor = texture2D(gSampler, TexCoord0.xy) * TotalLight;										\n\
-};"; 
+};";
 
 
 static const char* shadow_pVS = "                                                          \n\
@@ -473,6 +460,37 @@ void main()                                                                     
     Depth = 1.0 - (1.0 - Depth) * 25.0;                                             \n\
     FragColor = vec4(Depth);                                                        \n\
 }";
+
+void render(){
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	pTexture->Bind(GL_TEXTURE0);
+
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	pTexture->Bind(GL_TEXTURE0);
+
+	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+
+
+}
 
 void Pers(glm::fmat4& m, float zNear, float zFar, float width, float height, float fov){
 	const float ar = width / height;
@@ -527,7 +545,7 @@ void Scale(glm::fmat4& WorldScl, GLfloat x, GLfloat y, GLfloat z){
 void RenderSceneCB(){
 	static float rotate = 0.0f;
 	static float m_scale = 0.0f;
-	rotate += 0.01f;
+	//rotate += 0.01f;
 	glUseProgram(ShaderShadowProgram);
 	m_scale += 0.001f;
 	glm::fmat4 WorldScl;
@@ -576,24 +594,10 @@ void RenderSceneCB(){
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
-	pTexture->Bind(GL_TEXTURE0);
-
-	glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-
+	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 
 
 
@@ -609,8 +613,8 @@ void RenderSceneCB(){
 	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
 	//glm::fvec3(-1.3f, 1.0f, 5.0f);
 	//glm::fvec3(0.5f, -1.0f, 0.0f);
-	glm::fvec3 CameraPos_(-5.3f, 5.0f, 5.0f);//(0.0f, 0.0f, 0.0f);
-	glm::fvec3 CameraTarget(0.5f, -1.0f, 0.0f); //(0.0f, 0.0f, 1.0f);
+	glm::fvec3 CameraPos_/*(-5.3f, 5.0f, 5.0f);//*/(0.0f, 0.0f, 0.0f);
+	glm::fvec3 CameraTarget/*(0.5f, -1.0f, 0.0f);//*/(0.0f, 0.0f, 1.0f);
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
@@ -651,20 +655,7 @@ void RenderSceneCB(){
 	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);*/
 
 
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
-	pTexture->Bind(GL_TEXTURE0);
-
-	glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
+	render();
 
 	glutSwapBuffers();
 }
@@ -672,8 +663,8 @@ void RenderSceneCB(){
 static void AddShader(GLuint ShaderProgram_, const char* pShaderText, GLenum ShaderType){
 	GLuint ShaderObj = glCreateShader(ShaderType);
 
-	if (ShaderObj == 0) {
-		fprintf(stderr, "Error creating shader type %d\n", ShaderType); 
+	if(ShaderObj == 0){
+		fprintf(stderr, "Error creating shader type %d\n", ShaderType);
 		exit(0);
 	}
 
@@ -685,7 +676,7 @@ static void AddShader(GLuint ShaderProgram_, const char* pShaderText, GLenum Sha
 	glCompileShader(ShaderObj);
 	GLint success;
 	glGetShaderiv(ShaderObj, GL_COMPILE_STATUS, &success);
-	if (!success) {
+	if(!success){
 		GLchar InfoLog[1024];
 		glGetShaderInfoLog(ShaderObj, 1024, NULL, InfoLog);
 		fprintf(stderr, "Error compiling shader type %d: '%s'\n", ShaderType, InfoLog);
@@ -695,10 +686,10 @@ static void AddShader(GLuint ShaderProgram_, const char* pShaderText, GLenum Sha
 	glAttachShader(ShaderProgram_, ShaderObj);
 }
 
-static void CompileShadowShaders() {
+static void CompileShadowShaders(){
 	ShaderShadowProgram = glCreateProgram();
 
-	if (ShaderShadowProgram == 0) {
+	if(ShaderShadowProgram == 0){
 		fprintf(stderr, "Error creating shader program\n");
 		exit(1);
 	}
@@ -707,11 +698,11 @@ static void CompileShadowShaders() {
 	AddShader(ShaderShadowProgram, shadow_pFS, GL_FRAGMENT_SHADER);
 
 	GLint Success = 0;
-	GLchar ErrorLog[1024] = { 0 };
+	GLchar ErrorLog[1024] = {0};
 
 	glLinkProgram(ShaderShadowProgram);
 	glGetProgramiv(ShaderShadowProgram, GL_LINK_STATUS, &Success);
-	if (Success == 0) {
+	if(Success == 0){
 		glGetProgramInfoLog(ShaderShadowProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
 		exit(1);
@@ -719,7 +710,7 @@ static void CompileShadowShaders() {
 
 	glValidateProgram(ShaderShadowProgram);
 	glGetProgramiv(ShaderShadowProgram, GL_VALIDATE_STATUS, &Success);
-	if (!Success) {
+	if(!Success){
 		glGetProgramInfoLog(ShaderShadowProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
 		exit(1);
@@ -734,7 +725,7 @@ static void CompileShadowShaders() {
 static void CompileShaders(){
 	ShaderProgram = glCreateProgram();
 
-	if (ShaderProgram == 0) {
+	if(ShaderProgram == 0){
 		fprintf(stderr, "Error creating shader program\n");
 		exit(1);
 	}
@@ -743,11 +734,11 @@ static void CompileShaders(){
 	AddShader(ShaderProgram, pFS, GL_FRAGMENT_SHADER);
 
 	GLint Success = 0;
-	GLchar ErrorLog[1024] = { 0 };
+	GLchar ErrorLog[1024] = {0};
 
 	glLinkProgram(ShaderProgram);
 	glGetProgramiv(ShaderProgram, GL_LINK_STATUS, &Success);
-	if (Success == 0) {
+	if(Success == 0){
 		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
 		exit(1);
@@ -755,7 +746,7 @@ static void CompileShaders(){
 
 	glValidateProgram(ShaderProgram);
 	glGetProgramiv(ShaderProgram, GL_VALIDATE_STATUS, &Success);
-	if (!Success) {
+	if(!Success){
 		glGetProgramInfoLog(ShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
 		exit(1);
@@ -791,7 +782,7 @@ static void CompileShaders(){
 	assert(m_LightWVPLocation != 0xFFFFFFFF);
 	m_shadowMapLocation = glGetUniformLocation(ShaderProgram, "gShadowMap");
 	assert(m_shadowMapLocation != 0xFFFFFFFF);
-	for (unsigned int i = 0; i < MAX_POINT_LIGHTS; i++) {
+	for(unsigned int i = 0; i < MAX_POINT_LIGHTS; i++){
 		char Name[128];
 		memset(Name, 0, sizeof(Name));
 		snprintf(Name, sizeof(Name), "gPointLights[%d].Base.Color", i);
@@ -811,7 +802,7 @@ static void CompileShaders(){
 	}
 	m_numSpotLightsLocation = glGetUniformLocation(ShaderProgram, "gNumSpotLights");
 	assert(m_numSpotLightsLocation != 0xFFFFFFFF);
-	for (unsigned int i = 0; i < MAX_POINT_LIGHTS; i++) {
+	for(unsigned int i = 0; i < MAX_POINT_LIGHTS; i++){
 		char Name[128];
 		memset(Name, 0, sizeof(Name));
 		snprintf(Name, sizeof(Name), "gSpotLights[%d].Base.Base.Color", i);
@@ -856,26 +847,28 @@ int main(int argc, char** argv){
 	glEnable(GL_CULL_FACE);
 
 
-	Vertex Vertices[8] = {
+	Vertex Vertices[4] = {
 		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
 		Vertex(glm::fvec3(0.0f, -1.0f, -1.15475), glm::fvec2(0.5f, 0.0f)),
 		Vertex(glm::fvec3(1.0f, -1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
-		Vertex(glm::fvec3(0.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f)),
-
+		Vertex(glm::fvec3(0.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f))
+	};
+	Vertex Vertices2[4] = {
 		Vertex(glm::fvec3(-10.0f, -1.0f, 10.0f),	glm::fvec2(0.0f, 0.0f)),
 		Vertex(glm::fvec3(10.0f, -1.0f, -10.0f),	glm::fvec2(1.0f, 0.0f)),
 		Vertex(glm::fvec3(-10.0f, -1.0f, -10.0f),	glm::fvec2(0.5f, 1.0f)),
 		Vertex(glm::fvec3(10.0f, -1.0f, 10.0f),	glm::fvec2(0.5f, 1.0f))
 	};
 
-	unsigned int Indices[] = { 4, 5, 6,
-							   7, 5, 4,
-							   0, 3, 1,
+	unsigned int Indices[] = {0, 3, 1,
 							   1, 3, 2,
 							   2, 3, 0,
 							   1, 2, 0};
+	unsigned int Indices2[] = {0, 1, 2,
+							   3, 1, 0};
 
-	CalcNormals(Indices, 18, Vertices, 8);
+	CalcNormals(Indices, 12, Vertices, 4);
+	CalcNormals(Indices2, 6, Vertices2, 4);
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -884,6 +877,14 @@ int main(int argc, char** argv){
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices), Indices, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &VBO2);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices2), Vertices2, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &IBO2);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices2), Indices2, GL_STATIC_DRAW);
 
 
 	glm::fvec3 CameraPos(0.0f, 0.0f, 0.0f);
@@ -900,10 +901,10 @@ int main(int argc, char** argv){
 
 	sl[0].DiffuseIntensity = 2.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 1.0f);
-	sl[0].Position = glm::fvec3(-1.3f, 1.0f, 5.0f);
+	sl[0].Position = glm::fvec3(-3.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.5f, -1.0f, 0.0f);
-	sl[0].Attenuation.Linear = 0.1f;
-	sl[0].Cutoff = 50.0f;
+	sl[0].Attenuation.Linear = 0.01f;
+	sl[0].Cutoff = 30.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 
 	for(unsigned int i = 0; i < 1; i++){
@@ -927,7 +928,7 @@ int main(int argc, char** argv){
 
 	pTexture = new Texture(GL_TEXTURE_2D, "C:\\l004.jpg");
 
-	if (!pTexture->Load()) {
+	if(!pTexture->Load()){
 		return 1;
 	}
 	glutMainLoop();
