@@ -413,7 +413,7 @@ void main()																							\n\
 		TotalLight += CalcSpotLight(gSpotLights[i], Normal);										\n\
 	}																								\n\
 																									\n\
-    FragColor = texture2D(gSampler, TexCoord0.xy) * TotalLight;										\n\
+    FragColor = texture2D(gSampler, TexCoord0.xy)"/* * TotalLight*/";										\n\
 };"; 
 
 
@@ -519,7 +519,7 @@ void RenderSceneCB(){
 	sl[0].Position = glm::fvec3(-3.0f, 0.5f, 0.0f);
 	sl[0].Direction = glm::fvec3(0.5f, 0.0f, 1.0f);
 	sl[0].Attenuation.Linear = 0.1f;
-	sl[0].Cutoff = 10.0f;
+	sl[0].Cutoff = 50.0f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 
 	for (unsigned int i = 0; i < 1; i++) {
@@ -589,7 +589,7 @@ void RenderSceneCB(){
 	*m_transformation = glm::transpose(WorldPers * CameraRot * CameraPos * glm::transpose(*World));
 
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
-	//glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 
 	DirectionalLight Light;
@@ -620,7 +620,7 @@ void RenderSceneCB(){
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
 	pTexture->Bind(GL_TEXTURE0);
 
-	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 18, GL_UNSIGNED_INT, 0);
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
@@ -810,14 +810,21 @@ int main(int argc, char** argv){
 	glEnable(GL_CULL_FACE);
 
 
-	Vertex Vertices[4] = {
+	Vertex Vertices[8] = {
 		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
 		Vertex(glm::fvec3(0.0f, -1.0f, -1.15475), glm::fvec2(0.5f, 0.0f)),
 		Vertex(glm::fvec3(1.0f, -1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
-		Vertex(glm::fvec3(0.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f))
+		Vertex(glm::fvec3(0.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f)),
+
+		Vertex(glm::fvec3(-10.0f, -1.0f, 10.0f),	glm::fvec2(0.0f, 0.0f)),
+		Vertex(glm::fvec3(10.0f, -1.0f, -10.0f),	glm::fvec2(1.0f, 0.0f)),
+		Vertex(glm::fvec3(-10.0f, -1.0f, -10.0f),	glm::fvec2(0.5f, 1.0f)),
+		Vertex(glm::fvec3(10.0f, -1.0f, 10.0f),	glm::fvec2(0.5f, 1.0f))
 	};
 
-	unsigned int Indices[] = {0, 3, 1,
+	unsigned int Indices[] = { 4, 5, 6,
+							   7, 5, 4,
+							   0, 3, 1,
 							   1, 3, 2,
 							   2, 3, 0,
 							   1, 2, 0};
@@ -838,7 +845,7 @@ int main(int argc, char** argv){
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos, CameraTarget, CameraUp);
 
-	CompileShadowShaders();
+	//CompileShadowShaders();
 	CompileShaders();
 	glUniform1i(gSampler, 0);
 
