@@ -10,6 +10,67 @@
 #include <Magick++.h>;
 #include <string>;
 
+GLenum glCheckError_(const char* file, int line){
+	GLenum errorCode;
+	while((errorCode = glGetError()) != GL_NO_ERROR){
+		std::string error;
+		switch(errorCode){
+		case GL_INVALID_ENUM:                  error = "INVALID_ENUM"; break;
+		case GL_INVALID_VALUE:                 error = "INVALID_VALUE"; break;
+		case GL_INVALID_OPERATION:             error = "INVALID_OPERATION"; break;
+		case GL_STACK_OVERFLOW:                error = "STACK_OVERFLOW"; break;
+		case GL_STACK_UNDERFLOW:               error = "STACK_UNDERFLOW"; break;
+		case GL_OUT_OF_MEMORY:                 error = "OUT_OF_MEMORY"; break;
+		case GL_INVALID_FRAMEBUFFER_OPERATION: error = "INVALID_FRAMEBUFFER_OPERATION"; break;
+		}
+		std::cout << error << " | " << file << " (" << line << ")" << std::endl;
+	}
+	return errorCode;
+}
+#define glCheckError() glCheckError_(__FILE__, __LINE__)
+void APIENTRY glDebugOutput(GLenum source,
+	GLenum type,
+	GLuint id,
+	GLenum severity,
+	GLsizei length,
+	const GLchar* message,
+	void* userParam){
+	// ignore non-significant error/warning codes
+	if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+
+	std::cout << "---------------" << std::endl;
+	std::cout << "Debug message (" << id << "): " << message << std::endl;
+
+	switch(source){
+	case GL_DEBUG_SOURCE_API:             std::cout << "Source: API"; break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   std::cout << "Source: Window System"; break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER: std::cout << "Source: Shader Compiler"; break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:     std::cout << "Source: Third Party"; break;
+	case GL_DEBUG_SOURCE_APPLICATION:     std::cout << "Source: Application"; break;
+	case GL_DEBUG_SOURCE_OTHER:           std::cout << "Source: Other"; break;
+	} std::cout << std::endl;
+
+	switch(type){
+	case GL_DEBUG_TYPE_ERROR:               std::cout << "Type: Error"; break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: std::cout << "Type: Deprecated Behaviour"; break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::cout << "Type: Undefined Behaviour"; break;
+	case GL_DEBUG_TYPE_PORTABILITY:         std::cout << "Type: Portability"; break;
+	case GL_DEBUG_TYPE_PERFORMANCE:         std::cout << "Type: Performance"; break;
+	case GL_DEBUG_TYPE_MARKER:              std::cout << "Type: Marker"; break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:          std::cout << "Type: Push Group"; break;
+	case GL_DEBUG_TYPE_POP_GROUP:           std::cout << "Type: Pop Group"; break;
+	case GL_DEBUG_TYPE_OTHER:               std::cout << "Type: Other"; break;
+	} std::cout << std::endl;
+
+	switch(severity){
+	case GL_DEBUG_SEVERITY_HIGH:         std::cout << "Severity: high"; break;
+	case GL_DEBUG_SEVERITY_MEDIUM:       std::cout << "Severity: medium"; break;
+	case GL_DEBUG_SEVERITY_LOW:          std::cout << "Severity: low"; break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION: std::cout << "Severity: notification"; break;
+	} std::cout << std::endl;
+	std::cout << std::endl;
+}
+
 
 #define M_PI 3.14159265358979323846
 #define ToRadian(x) ((x) * M_PI / 180.0f)
@@ -223,6 +284,7 @@ public:
 
 	void BindForWriting(){
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	}
 
 	void BindForReading(GLenum TextureUnit){
@@ -230,12 +292,13 @@ public:
 		glBindTexture(GL_TEXTURE_2D, m_shadowMap);
 	}
 
-private:
+public:
 	GLuint m_fbo;
 	GLuint m_shadowMap;
 };
 
 
+GLuint VAO;
 GLuint VBO;
 GLuint IBO;
 GLuint VBO2;
@@ -355,7 +418,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 0.00001))																		\n\
+	if(Depth < (z + 50.00001))																		\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -363,7 +426,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float ShadowFactor)		\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
-	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
+	float DiffuseFactor = 1;"/*dot(Normal, -LightDirection);*/"												\n\
 																									\n\
 	vec4 DiffuseColor = vec4(0, 0, 0, 0);															\n\
 	vec4 SpecularColor = vec4(0, 0, 0, 0);															\n\
@@ -380,7 +443,7 @@ vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float 
 		}																							\n\
 	}																								\n\
 																									\n\
-	return (AmbientColor + ShadowFactor * (DiffuseColor + SpecularColor));							\n\
+	return (AmbientColor + ShadowFactor * (DiffuseColor + SpecularColor));							"/*;*/"\n\
 }																									\n\
 vec4 CalcDirectionalLight(vec3 Normal)																\n\
 {																									\n\
@@ -403,14 +466,14 @@ vec4 CalcPointLight(PointLight l, vec3 Normal, vec4 LightSpacePos)									\n\
 vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)														\n\
 {																									\n\
 	vec3 LightToPixel = normalize(WorldPos0 - l.Base.Position);										\n\
-	float SpotFactor = dot(LightToPixel, l.Direction);												\n\
+	float SpotFactor = dot(LightToPixel, normalize(l.Direction));												\n\
 																									\n\
 	if (SpotFactor > l.Cutoff) {																	\n\
 		vec4 Color = CalcPointLight(l.Base, Normal, LightSpacePos);									\n\
 		return Color * (1.0 - (1.0 - SpotFactor) * 1.0 / (1.0 - l.Cutoff));							\n\
 	}																								\n\
 	else {																							\n\
-		return vec4(0, 0, 0, 0);																	\n\
+		return vec4(0, 0.3, 0, 0.5);																	"/* FIX TODO 0 0 0 0 */"\n\
 	}																								\n\
 }																									\n\
 void main()																							\n\
@@ -468,22 +531,26 @@ void render(){
 	glEnableVertexAttribArray(2);
 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO2);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
+
 	pTexture->Bind(GL_TEXTURE0);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+
 	pTexture->Bind(GL_TEXTURE0);
 
 	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
@@ -545,8 +612,8 @@ void Scale(glm::fmat4& WorldScl, GLfloat x, GLfloat y, GLfloat z){
 void RenderSceneCB(){
 	static float rotate = 0.0f;
 	static float m_scale = 0.0f;
-	//rotate += 0.01f;
-	glUseProgram(ShaderShadowProgram);
+	glCheckError();
+	rotate += 0.01f;
 	m_scale += 0.001f;
 	glm::fmat4 WorldScl;
 	glm::fmat4 WorldRot;
@@ -555,34 +622,11 @@ void RenderSceneCB(){
 	glm::fmat4 CameraRot;
 	glm::fmat4 WorldPers;
 
-
-	/*SpotLight sl[1];
-	sl[0].DiffuseIntensity = 2.0f;
-	sl[0].Color = glm::fvec3(1.0f, 1.0f, 0.8f);
-	sl[0].Position = glm::fvec3(-1.3f, 1.0f, 5.0f);
-	sl[0].Direction = glm::fvec3(0.5f, -1.0f, 0.0f);
-	sl[0].Attenuation.Linear = 0.1f;
-	sl[0].Cutoff = 50.0f;
-	glUniform1i(m_numSpotLightsLocation, 1);
-
-	for (unsigned int i = 0; i < 1; i++) {
-		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
-		glUniform1f(m_spotLightsLocation[i].AmbientIntensity, sl[i].AmbientIntensity);
-		glUniform1f(m_spotLightsLocation[i].DiffuseIntensity, sl[i].DiffuseIntensity);
-		glUniform3f(m_spotLightsLocation[i].Position, sl[i].Position.x, sl[i].Position.y, sl[i].Position.z);
-		glm::fvec3 Direction = sl[i].Direction;
-		Direction = glm::normalize(Direction);
-		glUniform3f(m_spotLightsLocation[i].Direction, Direction.x, Direction.y, Direction.z);
-		glUniform1f(m_spotLightsLocation[i].Cutoff, cosf(ToRadian(sl[i].Cutoff)));
-		glUniform1f(m_spotLightsLocation[i].Atten.Constant, sl[i].Attenuation.Constant);
-		glUniform1f(m_spotLightsLocation[i].Atten.Linear, sl[i].Attenuation.Linear);
-		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
-
-
-	}*/
 	m_shadowMapFBO.BindForWriting();
-
 	glClear(GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glUseProgram(ShaderShadowProgram);
+	glCheckError();
 
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
@@ -594,19 +638,22 @@ void RenderSceneCB(){
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
-	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
-
+	glCheckError();
+	glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
 	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glCheckError();
 
 
 
 
-	glUseProgram(ShaderProgram);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glUniform1i(m_textureLocation, 0);
+	glEnable(GL_DEPTH_TEST);
+	glUseProgram(ShaderProgram);
+	glCheckError();
 	//m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
 	m_shadowMapFBO.BindForReading(GL_TEXTURE1); //24
+	glCheckError();
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
@@ -619,40 +666,25 @@ void RenderSceneCB(){
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
 	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
+	glCheckError();
 
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 
-	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	//glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
+	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
+	glCheckError();
 
 
 
 	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));	//24
-	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
-	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
+	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);	//24
+	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);	//24
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World)); //24
 	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);	//24
-
-
-	/*DirectionalLight Light;
-	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
-	Light.AmbientIntensity = 1.0f;
-	Light.Direction = glm::vec3(1.0f, 1.0f, 0.0f);
-	Light.DiffuseIntensity = 0.75f;
-	glUniform3f(m_dirLightColorLocation, Light.Color.x, Light.Color.y, Light.Color.z);
-	glUniform1f(m_dirLightAmbientIntensityLocation, Light.AmbientIntensity);
-	glm::fvec3 Direction = Light.Direction;
-	Direction = glm::normalize(Direction);
-	glUniform3f(m_dirLightLocationDirection, Direction.x, Direction.y, Direction.z);
-	glUniform1f(m_dirLightLocationDiffuseIntensity, Light.DiffuseIntensity);
-
-	float ReflectIntensity = 1.0f;
-	float ReflectPower = 32.0f;
-	glUniform1f(m_matSpecularIntensityLocation, ReflectIntensity);
-	glUniform1f(m_matSpecularPowerLocation, ReflectPower);
-	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);*/
+	glCheckError();
 
 
 	render();
@@ -719,7 +751,9 @@ static void CompileShadowShaders(){
 	glUseProgram(ShaderShadowProgram);
 
 	m_WVPLocation = glGetUniformLocation(ShaderShadowProgram, "gWVP");
+	assert(m_WVPLocation != 0xFFFFFFFF);
 	m_textureLocation = glGetUniformLocation(ShaderShadowProgram, "gShadowMap");
+	assert(m_textureLocation != 0xFFFFFFFF);
 }
 
 static void CompileShaders(){
@@ -829,10 +863,18 @@ static void CompileShaders(){
 int main(int argc, char** argv){
 	Magick::InitializeMagick(*argv);
 	glutInit(&argc, argv);
+
+	glutInitContextProfile(GLUT_CORE_PROFILE);
+	glutInitContextFlags(GLUT_DEBUG);
+	glutInitContextVersion(4, 2); // at least 3.2 is required, you can use a higer version when needed
+	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
+
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(1024, 768);
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow("Tutorial 24");
+
+
 	glutDisplayFunc(RenderSceneCB);
 	glutIdleFunc(RenderSceneCB);
 
@@ -841,6 +883,12 @@ int main(int argc, char** argv){
 		fprintf(stderr, "Error: '%s' \n", glewGetErrorString(res));
 		return 1;
 	}
+	CompileShadowShaders();
+
+	if(!m_shadowMapFBO.Init(1024, 768)){
+		return false;
+	}
+	CompileShaders();
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
@@ -870,6 +918,9 @@ int main(int argc, char** argv){
 	CalcNormals(Indices, 12, Vertices, 4);
 	CalcNormals(Indices2, 6, Vertices2, 4);
 
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices), Vertices, GL_STATIC_DRAW);
@@ -886,26 +937,22 @@ int main(int argc, char** argv){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices2), Indices2, GL_STATIC_DRAW);
 
+	glEnable(GL_DEPTH_TEST);
+
 
 	glm::fvec3 CameraPos(0.0f, 0.0f, 0.0f);
 	glm::fvec3 CameraTarget(0.0f, 0.0f, 1.0f);
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos, CameraTarget, CameraUp);
 
-	CompileShadowShaders();
-
-	if(!m_shadowMapFBO.Init(1024, 768)){
-		return false;
-	}
-	CompileShaders();
-
-	sl[0].DiffuseIntensity = 2.0f;
+	sl[0].DiffuseIntensity = 5.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 1.0f);
-	sl[0].Position = glm::fvec3(-3.3f, 3.0f, 5.0f);
-	sl[0].Direction = glm::fvec3(0.5f, -1.0f, 0.0f);
+	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
+	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 30.0f;
+	sl[0].Cutoff = 4.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
+	glCheckError();
 
 	for(unsigned int i = 0; i < 1; i++){
 		glUniform3f(m_spotLightsLocation[i].Color, sl[i].Color.x, sl[i].Color.y, sl[i].Color.z);
@@ -915,7 +962,7 @@ int main(int argc, char** argv){
 		glm::fvec3 Direction = sl[i].Direction;
 		Direction = glm::normalize(Direction);
 		glUniform3f(m_spotLightsLocation[i].Direction, Direction.x, Direction.y, Direction.z);
-		glUniform1f(m_spotLightsLocation[i].Cutoff, cosf(ToRadian(sl[i].Cutoff)));
+		glUniform1f(m_spotLightsLocation[i].Cutoff, glm::cos(glm::radians(sl[i].Cutoff)));
 		glUniform1f(m_spotLightsLocation[i].Atten.Constant, sl[i].Attenuation.Constant);
 		glUniform1f(m_spotLightsLocation[i].Atten.Linear, sl[i].Attenuation.Linear);
 		glUniform1f(m_spotLightsLocation[i].Atten.Exp, sl[i].Attenuation.Exp);
@@ -924,7 +971,11 @@ int main(int argc, char** argv){
 	}
 	glUniform1i(gSampler, 0);
 	//glUniform1i(m_samplerLocation, 0); //24
+	glCheckError();
 	glUniform1i(m_shadowMapLocation, 1); //24
+	glCheckError();
+	glUniform1i(m_textureLocation, 0);
+	glCheckError();
 
 	pTexture = new Texture(GL_TEXTURE_2D, "C:\\l004.jpg");
 
