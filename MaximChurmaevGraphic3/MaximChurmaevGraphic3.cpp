@@ -322,6 +322,7 @@ GLuint m_shadowMapLocation; //24
 Texture* pTexture = NULL;
 GLuint gSampler;
 glm::fmat4* m_transformation = new glm::fmat4();
+glm::fmat4* m_transformationS = new glm::fmat4();
 glm::fmat4* World = new glm::fmat4();
 ShadowMapFBO m_shadowMapFBO;
 SpotLight sl[1];
@@ -428,7 +429,8 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float ShadowFactor)		\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
-	float DiffuseFactor = 1;"/*dot(Normal, -LightDirection);*/"												\n\
+	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
+	float DiffuseFactor1 = 1;												\n\
 																									\n\
 	vec4 DiffuseColor = vec4(0, 0, 0, 0);															\n\
 	vec4 SpecularColor = vec4(0, 0, 0, 0);															\n\
@@ -445,7 +447,7 @@ vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float 
 		}																							\n\
 	}																								\n\
 																									\n\
-	return (AmbientColor + ShadowFactor * (DiffuseColor + SpecularColor));							"/*;*/"\n\
+	return (AmbientColor + (ShadowFactor * (DiffuseColor +  SpecularColor)));							"/*;*/"\n\
 }																									\n\
 vec4 CalcDirectionalLight(vec3 Normal)																\n\
 {																									\n\
@@ -648,8 +650,8 @@ void RenderSceneCB(){
 	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
 	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);//WorldPers, 1.0f, 50.0f, 1024, 768, 20.0f);
 	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
-	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
-	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
+	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
+	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
 	glCheckError();
 	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
 	render();
@@ -693,8 +695,8 @@ void RenderSceneCB(){
 	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));	//24
 	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);	//24
 	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);	//24
-	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World)); //24
-	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);	//24
+	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World)); //24
+	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);	//24
 	glCheckError();
 
 
@@ -981,12 +983,12 @@ int main(int argc, char** argv){
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos, CameraTarget, CameraUp);
 
-	sl[0].DiffuseIntensity = 5.0f;
+	sl[0].DiffuseIntensity = 1.0f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 1.0f);
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 4.5f;
+	sl[0].Cutoff = 40.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
 
