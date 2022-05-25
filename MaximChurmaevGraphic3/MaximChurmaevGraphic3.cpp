@@ -303,6 +303,8 @@ GLuint VBO;
 GLuint IBO;
 GLuint VBO2;
 GLuint IBO2;
+GLuint VBO3;
+GLuint IBO3;
 GLuint gWVPLocation;
 GLuint m_WorldMatrixLocation;
 GLuint m_dirLightColorLocation;
@@ -418,7 +420,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 50.00001))																		\n\
+	if(Depth < (z + 0.00001))																		\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -541,6 +543,17 @@ void render(){
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
+	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO3);
+
+	pTexture->Bind(GL_TEXTURE0);
+
+	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+	
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
@@ -639,7 +652,7 @@ void RenderSceneCB(){
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glCheckError();
-	glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
+	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
 	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glCheckError();
@@ -907,6 +920,12 @@ int main(int argc, char** argv){
 		Vertex(glm::fvec3(-10.0f, -1.0f, -10.0f),	glm::fvec2(0.5f, 1.0f)),
 		Vertex(glm::fvec3(10.0f, -1.0f, 10.0f),	glm::fvec2(0.5f, 1.0f))
 	};
+	Vertex Vertices3[4] = {
+		Vertex(glm::fvec3(-3.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
+		Vertex(glm::fvec3(-2.0f, -1.0f, -1.15475), glm::fvec2(0.5f, 0.0f)),
+		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
+		Vertex(glm::fvec3(-2.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f))
+	};
 
 	unsigned int Indices[] = {0, 3, 1,
 							   1, 3, 2,
@@ -914,8 +933,13 @@ int main(int argc, char** argv){
 							   1, 2, 0};
 	unsigned int Indices2[] = {0, 1, 2,
 							   3, 1, 0};
+	unsigned int Indices3[] = {0, 3, 1,
+							   1, 3, 2,
+							   2, 3, 0,
+							   1, 2, 0};
 
 	CalcNormals(Indices, 12, Vertices, 4);
+	CalcNormals(Indices3, 12, Vertices3, 4);
 	CalcNormals(Indices2, 6, Vertices2, 4);
 
 	glGenVertexArrays(1, &VAO);
@@ -936,6 +960,14 @@ int main(int argc, char** argv){
 	glGenBuffers(1, &IBO2);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices2), Indices2, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &VBO3);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices3), Vertices3, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &IBO3);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO3);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices3), Indices3, GL_STATIC_DRAW);
 
 	glEnable(GL_DEPTH_TEST);
 
