@@ -284,7 +284,7 @@ public:
 
 	void BindForWriting(){
 		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, m_fbo);
-		glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
+		//glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
 	}
 
 	void BindForReading(GLenum TextureUnit){
@@ -637,7 +637,6 @@ void RenderSceneCB(){
 
 	m_shadowMapFBO.BindForWriting();
 	glClear(GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
 	glUseProgram(ShaderShadowProgram);
 	glCheckError();
 
@@ -661,7 +660,6 @@ void RenderSceneCB(){
 
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
 	glUseProgram(ShaderProgram);
 	glCheckError();
 	//m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
@@ -685,8 +683,8 @@ void RenderSceneCB(){
 	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
 
 	//glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
-	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
+	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
 	glCheckError();
 
@@ -882,11 +880,10 @@ int main(int argc, char** argv){
 	glutInitContextVersion(4, 2); // at least 3.2 is required, you can use a higer version when needed
 	glutInitContextFlags(GLUT_FORWARD_COMPATIBLE);
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(1024, 768);
 	glutInitWindowPosition(100, 100);
 	glutCreateWindow("Tutorial 24");
-
 
 	glutDisplayFunc(RenderSceneCB);
 	glutIdleFunc(RenderSceneCB);
@@ -902,6 +899,13 @@ int main(int argc, char** argv){
 		return false;
 	}
 	CompileShaders();
+
+	glUniform1i(m_textureLocation, 0);
+	glCheckError();
+
+	glUniform1i(m_shadowMapLocation, 1); //24
+	glCheckError();
+
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
@@ -1003,10 +1007,6 @@ int main(int argc, char** argv){
 	}
 	glUniform1i(gSampler, 0);
 	//glUniform1i(m_samplerLocation, 0); //24
-	glCheckError();
-	glUniform1i(m_shadowMapLocation, 1); //24
-	glCheckError();
-	glUniform1i(m_textureLocation, 0);
 	glCheckError();
 
 	pTexture = new Texture(GL_TEXTURE_2D, "C:\\l004.jpg");
