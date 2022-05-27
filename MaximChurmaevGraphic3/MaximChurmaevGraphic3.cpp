@@ -10,6 +10,8 @@
 #include <Magick++.h>;
 #include <string>;
 
+using namespace std;
+
 GLenum glCheckError_(const char* file, int line){
 	GLenum errorCode;
 	while((errorCode = glGetError()) != GL_NO_ERROR){
@@ -114,6 +116,91 @@ private:
 	Magick::Blob m_blob;
 };
 
+
+static const GLenum types[6] = {GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+								  GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+								  GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+								  GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+								  GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+								  GL_TEXTURE_CUBE_MAP_NEGATIVE_Z};
+class CubemapTexture{
+public:
+
+	CubemapTexture(const string& Directory,
+		const string& PosXFilename,
+		const string& NegXFilename,
+		const string& PosYFilename,
+		const string& NegYFilename,
+		const string& PosZFilename,
+		const string& NegZFilename);
+
+	~CubemapTexture();
+
+	bool Load();
+
+	void Bind(GLenum TextureUnit);
+
+private:
+
+	string m_fileNames[6];
+	GLuint m_textureObj;
+};
+CubemapTexture::CubemapTexture(const string& Directory,
+	const string& PosXFilename,
+	const string& NegXFilename,
+	const string& PosYFilename,
+	const string& NegYFilename,
+	const string& PosZFilename,
+	const string& NegZFilename){
+	string BaseDir = Directory;
+
+	m_fileNames[0] = BaseDir + PosXFilename;
+	m_fileNames[1] = BaseDir + NegXFilename;
+	m_fileNames[2] = BaseDir + PosYFilename;
+	m_fileNames[3] = BaseDir + NegYFilename;
+	m_fileNames[4] = BaseDir + PosZFilename;
+	m_fileNames[5] = BaseDir + NegZFilename;
+
+	m_textureObj = 0;
+}
+bool CubemapTexture::Load(){
+	glGenTextures(1, &m_textureObj);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_textureObj);
+
+	Magick::Image* pImage = NULL;
+	Magick::Blob blob;
+
+	for(unsigned int i = 0; i < 6; i++){
+		pImage = new Magick::Image(m_fileNames[i]);
+
+		try{
+			pImage->write(&blob, "RGBA");
+		} catch(Magick::Error& Error){
+			cout << "Error loading texture '" << m_fileNames[i] << "': " << Error.what() << endl;
+			delete pImage;
+			return false;
+		}
+
+		glTexImage2D(types[i], 0, GL_RGB, pImage->columns(), pImage->rows(), 0, GL_RGBA,
+			GL_UNSIGNED_BYTE, blob.data());
+
+		delete pImage;
+	}
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+	return true;
+}
+void CubemapTexture::Bind(GLenum TextureUnit){
+	glActiveTexture(TextureUnit);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, m_textureObj);
+}
+
+
 struct Vertex{
 	glm::fvec3 m_pos;
 	glm::fvec2 m_tex;
@@ -133,6 +220,52 @@ struct{
 	glm::fvec3 Target;
 	glm::fvec3 Up;
 } m_camera;
+
+class SkyBox{
+public:
+	SkyBox(){};
+
+	~SkyBox(){};
+
+	bool Init(const string& Directory,
+		const string& PosXFilename,
+		const string& NegXFilename,
+		const string& PosYFilename,
+		const string& NegYFilename,
+		const string& PosZFilename,
+		const string& NegZFilename);
+
+	void Render();
+
+private:
+	CubemapTexture* m_pCubemapTex;
+};
+bool SkyBox::Init(const string& Directory,
+	const string& PosXFilename,
+	const string& NegXFilename,
+	const string& PosYFilename,
+	const string& NegYFilename,
+	const string& PosZFilename,
+	const string& NegZFilename){
+	//glUniform1i(m_textureLocation, 0);
+
+	m_pCubemapTex = new CubemapTexture(Directory,
+		PosXFilename,
+		NegXFilename,
+		PosYFilename,
+		NegYFilename,
+		PosZFilename,
+		NegZFilename);
+
+	if(!m_pCubemapTex->Load()){
+		return false;
+	}
+
+	//m_pMesh = new Mesh();
+
+	return true;
+}
+
 void SetCamera(const glm::fvec3& Pos, const glm::fvec3& Target, const glm::fvec3& Up){
 	m_camera.Pos = Pos;
 	m_camera.Target = Target;
@@ -305,6 +438,8 @@ GLuint VBO2;
 GLuint IBO2;
 GLuint VBO3;
 GLuint IBO3;
+GLuint VBO4;
+GLuint IBO4;
 GLuint gWVPLocation;
 GLuint m_WorldMatrixLocation;
 GLuint m_dirLightColorLocation;
@@ -326,12 +461,18 @@ glm::fmat4* m_transformationS = new glm::fmat4();
 glm::fmat4* World = new glm::fmat4();
 ShadowMapFBO m_shadowMapFBO;
 SpotLight sl[1];
+SkyBox* m_pSkyBox;
 
 GLuint ShaderShadowProgram; //24
 GLuint ShaderProgram; //24
 
 GLuint m_WVPLocation;
 GLuint m_textureLocation;
+
+GLuint ShaderSkyboxProgram; //25
+
+GLuint skybox_WVPLocation; //25
+GLuint skybox_textureLocation; //25
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -421,7 +562,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 0.0000001))																		\n\
+	if(Depth < (z + 0.00001))																		\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -525,7 +666,36 @@ void main()                                                                     
 {                                                                                   \n\
     float Depth = texture(gShadowMap, TexCoordOut).x;                               \n\
     Depth = 1.0 - (1.0 - Depth) * 25.0;                                             \n\
-    FragColor = vec4(vec3(Depth), 1.0);;                                                        \n\
+    FragColor = vec4(vec3(Depth), 1.0);                                                        \n\
+}";
+
+static const char* skybox_pVS = "													\n\
+#version 330																		\n\
+																					\n\
+layout(location = 0) in vec3 Position;												\n\
+																					\n\
+uniform mat4 gWVP;																	\n\
+																					\n\
+out vec3 TexCoord0;																	\n\
+																					\n\
+void main()																			\n\
+{																					\n\
+	vec4 WVP_Pos = gWVP * vec4(Position, 1.0);										\n\
+    gl_Position = WVP_Pos.xyww;														\n\
+    TexCoord0 = Position;															\n\
+}";
+
+static const char* skybox_pFS = "													\n\
+#version 330																		\n\
+																					\n\
+in vec3 TexCoord0;																	\n\
+uniform samplerCube gCubemapTexture;												\n\
+																					\n\
+out vec4 FragColor;																	\n\
+																					\n\
+void main()																			\n\
+{																					\n\
+    FragColor = texture(gCubemapTexture, TexCoord0);								\n\
 }";
 
 void render(){
@@ -639,7 +809,7 @@ void RenderSceneCB(){
 
 	m_shadowMapFBO.BindForWriting();
 	glClear(GL_DEPTH_BUFFER_BIT);
-	glUseProgram(ShaderShadowProgram);
+	/*glUseProgram(ShaderShadowProgram);
 	glCheckError();
 
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
@@ -652,7 +822,7 @@ void RenderSceneCB(){
 	*World = WorldPos * WorldRot * WorldScl;
 	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
-	glCheckError();
+	glCheckError();*/
 	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
 	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -702,7 +872,78 @@ void RenderSceneCB(){
 
 	render();
 
+
+	m_pSkyBox->Render();
+
 	glutSwapBuffers();
+}
+
+void SkyBox::Render(){
+	glUseProgram(ShaderSkyboxProgram);
+
+	GLint OldCullFaceMode;
+	glGetIntegerv(GL_CULL_FACE_MODE, &OldCullFaceMode);
+	GLint OldDepthFuncMode;
+	glGetIntegerv(GL_DEPTH_FUNC, &OldDepthFuncMode);
+
+	glCullFace(GL_FRONT);
+	glDepthFunc(GL_LEQUAL);
+
+	glm::fmat4 WorldScl;
+	glm::fmat4 WorldRot;
+	glm::fmat4 WorldPos;
+	glm::fmat4 CameraPos;
+	glm::fmat4 CameraRot;
+	glm::fmat4 WorldPers;
+
+	glCheckError();
+	static float rotate = 0.0f;
+	rotate += 0.01f;
+
+	glm::fvec3 CameraPos_(0.0f, 0.0f, 0.0f);
+	glm::fvec3 CameraTarget(0.0f, 0.0f, 1.0f);
+	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
+	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
+	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
+	Scale(WorldScl, 20.0f, 20.0f, 20.0f);
+	RotateY(WorldRot, rotate);
+	Translate(WorldPos, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
+	//Translate(WorldPos, 0, 0, 5.0f);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
+	SetCamera(CameraPos_, CameraTarget, CameraUp);
+	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
+	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
+	*World = WorldPos * WorldRot * WorldScl;
+	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
+	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
+	glCheckError();
+
+	//m_pCubemapTex->Bind(GL_TEXTURE0);
+	//render();
+	
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO4);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO4);
+
+	//m_pCubemapTex->Bind(GL_TEXTURE0);
+	//pTexture->Bind(GL_TEXTURE0);
+
+	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+
+	glCullFace(OldCullFaceMode);
+	glDepthFunc(OldDepthFuncMode);
 }
 
 static void AddShader(GLuint ShaderProgram_, const char* pShaderText, GLenum ShaderType){
@@ -767,6 +1008,44 @@ static void CompileShadowShaders(){
 	assert(m_WVPLocation != 0xFFFFFFFF);
 	m_textureLocation = glGetUniformLocation(ShaderShadowProgram, "gShadowMap");
 	assert(m_textureLocation != 0xFFFFFFFF);
+}
+
+static void CompileSkyboxShaders(){
+	ShaderSkyboxProgram = glCreateProgram();
+
+	if(ShaderSkyboxProgram == 0){
+		fprintf(stderr, "Error creating shader program\n");
+		exit(1);
+	}
+
+	AddShader(ShaderSkyboxProgram, skybox_pVS, GL_VERTEX_SHADER);
+	AddShader(ShaderSkyboxProgram, skybox_pFS, GL_FRAGMENT_SHADER);
+
+	GLint Success = 0;
+	GLchar ErrorLog[1024] = {0};
+
+	glLinkProgram(ShaderSkyboxProgram);
+	glGetProgramiv(ShaderSkyboxProgram, GL_LINK_STATUS, &Success);
+	if(Success == 0){
+		glGetProgramInfoLog(ShaderSkyboxProgram, sizeof(ErrorLog), NULL, ErrorLog);
+		fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
+		exit(1);
+	}
+
+	glValidateProgram(ShaderSkyboxProgram);
+	glGetProgramiv(ShaderSkyboxProgram, GL_VALIDATE_STATUS, &Success);
+	if(!Success){
+		glGetProgramInfoLog(ShaderSkyboxProgram, sizeof(ErrorLog), NULL, ErrorLog);
+		fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
+		exit(1);
+	}
+
+	glUseProgram(ShaderSkyboxProgram);
+
+	skybox_WVPLocation = glGetUniformLocation(ShaderSkyboxProgram, "gWVP");
+	assert(skybox_WVPLocation != 0xFFFFFFFF);
+	skybox_textureLocation = glGetUniformLocation(ShaderSkyboxProgram, "gCubemapTexture");
+	assert(skybox_textureLocation != 0xFFFFFFFF);
 }
 
 static void CompileShaders(){
@@ -897,15 +1176,19 @@ int main(int argc, char** argv){
 	}
 	CompileShadowShaders();
 
+	glUniform1i(m_shadowMapLocation, 1); //24
+	glCheckError();
+
 	if(!m_shadowMapFBO.Init(1024, 768)){
 		return false;
 	}
-	CompileShaders();
+	CompileSkyboxShaders();
 
 	glUniform1i(m_textureLocation, 0);
 	glCheckError();
 
-	glUniform1i(m_shadowMapLocation, 1); //24
+	CompileShaders();
+	glUniform1i(skybox_textureLocation, 0);
 	glCheckError();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -932,6 +1215,17 @@ int main(int argc, char** argv){
 		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
 		Vertex(glm::fvec3(-2.0f, 1.0f, 0.0f),      glm::fvec2(0.5f, 1.0f))
 	};
+	Vertex Vertices4[8] = {
+		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
+		Vertex(glm::fvec3(-1.0f, -1.0f, -1.15475), glm::fvec2(0.5f, 0.0f)),
+		Vertex(glm::fvec3(-1.0f, 1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
+		Vertex(glm::fvec3(-1.0f, 1.0f, -1.15475),      glm::fvec2(0.5f, 1.0f)),
+
+		Vertex(glm::fvec3(1.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
+		Vertex(glm::fvec3(1.0f, -1.0f, -1.15475), glm::fvec2(0.5f, 0.0f)),
+		Vertex(glm::fvec3(1.0f, 1.0f, 0.5773f),  glm::fvec2(1.0f, 0.0f)),
+		Vertex(glm::fvec3(1.0f, 1.0f, -1.15475),      glm::fvec2(0.5f, 1.0f))
+	};
 
 	unsigned int Indices[] = {0, 3, 1,
 							   1, 3, 2,
@@ -943,10 +1237,24 @@ int main(int argc, char** argv){
 							   1, 3, 2,
 							   2, 3, 0,
 							   1, 2, 0};
+	unsigned int Indices4[] = {	0, 1, 4,
+								4, 1, 5, // bottom
+								0, 4, 2,
+								2, 4, 6, // backward
+								4, 5, 7,
+								6, 4, 7, // right
+								0, 3, 1,
+								2, 3, 0, // left
+								1, 7, 5,
+								1, 3, 7, // forward
+								2, 6, 7,
+								2, 7, 3  // top
+								};
 
 	CalcNormals(Indices, 12, Vertices, 4);
 	CalcNormals(Indices3, 12, Vertices3, 4);
 	CalcNormals(Indices2, 6, Vertices2, 4);
+	CalcNormals(Indices4, 36, Vertices4, 8);
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -975,6 +1283,14 @@ int main(int argc, char** argv){
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO3);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices3), Indices3, GL_STATIC_DRAW);
 
+	glGenBuffers(1, &VBO4);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO4);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertices4), Vertices4, GL_STATIC_DRAW);
+
+	glGenBuffers(1, &IBO4);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO4);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices4), Indices4, GL_STATIC_DRAW);
+
 	glEnable(GL_DEPTH_TEST);
 
 
@@ -988,7 +1304,7 @@ int main(int argc, char** argv){
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 20.5f;
+	sl[0].Cutoff = 200.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
 
@@ -1016,5 +1332,19 @@ int main(int argc, char** argv){
 	if(!pTexture->Load()){
 		return 1;
 	}
+
+
+	m_pSkyBox = new SkyBox();
+
+	if(!m_pSkyBox->Init("C:\\",
+		"sp3right.jpg",
+		"sp3left.jpg",
+		"sp3top.jpg",
+		"sp3bot.jpg",
+		"sp3front.jpg",
+		"sp3back.jpg")){
+		return false;
+	}
+
 	glutMainLoop();
 }
