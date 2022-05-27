@@ -421,7 +421,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 0.00001))																		\n\
+	if(Depth < (z + 0.0000001))																		\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -429,8 +429,8 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float ShadowFactor)		\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
-	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
-	float DiffuseFactor1 = 1;												\n\
+	float DiffuseFactor1 = dot(Normal, -LightDirection);												\n\
+	float DiffuseFactor = 1;												\n\
 																									\n\
 	vec4 DiffuseColor = vec4(0, 0, 0, 0);															\n\
 	vec4 SpecularColor = vec4(0, 0, 0, 0);															\n\
@@ -477,7 +477,7 @@ vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)														\n
 		return Color * (1.0 - (1.0 - SpotFactor) * 1.0 / (1.0 - l.Cutoff));							\n\
 	}																								\n\
 	else {																							\n\
-		return vec4(0, 0.3, 0, 0.5);																	"/* FIX TODO 0 0 0 0 */"\n\
+		return vec4(0, 0, 0, 0);																	"/* FIX TODO 0 0.3 0 0.5 */"\n\
 	}																								\n\
 }																									\n\
 void main()																							\n\
@@ -525,7 +525,7 @@ void main()                                                                     
 {                                                                                   \n\
     float Depth = texture(gShadowMap, TexCoordOut).x;                               \n\
     Depth = 1.0 - (1.0 - Depth) * 25.0;                                             \n\
-    FragColor = vec4(Depth);                                                        \n\
+    FragColor = vec4(vec3(Depth), 1.0);;                                                        \n\
 }";
 
 void render(){
@@ -648,9 +648,9 @@ void RenderSceneCB(){
 	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
 	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
 	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
-	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);//WorldPers, 1.0f, 50.0f, 1024, 768, 20.0f);
-	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
-	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
+	*World = WorldPos * WorldRot * WorldScl;
+	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
 	glCheckError();
 	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
@@ -670,7 +670,7 @@ void RenderSceneCB(){
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
-	Pers(WorldPers, 1.0f, 100.0f, 1024, 768, 30);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
 	//glm::fvec3(-1.3f, 1.0f, 5.0f);
 	//glm::fvec3(0.5f, -1.0f, 0.0f);
 	glm::fvec3 CameraPos_/*(-5.3f, 5.0f, 5.0f);//*/(0.0f, 0.0f, 0.0f);
@@ -988,7 +988,7 @@ int main(int argc, char** argv){
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 40.5f;
+	sl[0].Cutoff = 20.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
 
