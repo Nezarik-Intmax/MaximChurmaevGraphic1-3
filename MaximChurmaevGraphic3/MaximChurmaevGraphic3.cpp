@@ -562,7 +562,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 0.00001))																		\n\
+	if(Depth < (z + 0.0000001))																		\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -809,7 +809,7 @@ void RenderSceneCB(){
 
 	m_shadowMapFBO.BindForWriting();
 	glClear(GL_DEPTH_BUFFER_BIT);
-	/*glUseProgram(ShaderShadowProgram);
+	glUseProgram(ShaderShadowProgram);
 	glCheckError();
 
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
@@ -822,7 +822,7 @@ void RenderSceneCB(){
 	*World = WorldPos * WorldRot * WorldScl;
 	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
-	glCheckError();*/
+	glCheckError();
 	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
 	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -841,10 +841,8 @@ void RenderSceneCB(){
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
 	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
-	//glm::fvec3(-1.3f, 1.0f, 5.0f);
-	//glm::fvec3(0.5f, -1.0f, 0.0f);
-	glm::fvec3 CameraPos_/*(-5.3f, 5.0f, 5.0f);//*/(0.0f, 0.0f, 0.0f);
-	glm::fvec3 CameraTarget/*(0.5f, -1.0f, 0.0f);//*/(0.0f, 0.0f, 1.0f);
+	glm::fvec3 CameraPos_(0.0f, 0.0f, 0.0f);
+	glm::fvec3 CameraTarget(0.0f, 0.0f, 1.0f);
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
@@ -908,7 +906,6 @@ void SkyBox::Render(){
 	Scale(WorldScl, 20.0f, 20.0f, 20.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
-	//Translate(WorldPos, 0, 0, 5.0f);
 	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
@@ -917,9 +914,6 @@ void SkyBox::Render(){
 	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
 	glCheckError();
-
-	//m_pCubemapTex->Bind(GL_TEXTURE0);
-	//render();
 	
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -932,8 +926,7 @@ void SkyBox::Render(){
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO4);
 
-	//m_pCubemapTex->Bind(GL_TEXTURE0);
-	//pTexture->Bind(GL_TEXTURE0);
+	m_pCubemapTex->Bind(GL_TEXTURE0);
 
 	glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
@@ -1183,12 +1176,15 @@ int main(int argc, char** argv){
 		return false;
 	}
 	CompileSkyboxShaders();
+	glUniform1i(skybox_textureLocation, 0);
+	glCheckError();
+
+	CompileShaders();
 
 	glUniform1i(m_textureLocation, 0);
 	glCheckError();
 
-	CompileShaders();
-	glUniform1i(skybox_textureLocation, 0);
+	glUniform1i(m_shadowMapLocation, 1); //24
 	glCheckError();
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1304,7 +1300,7 @@ int main(int argc, char** argv){
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 200.5f;
+	sl[0].Cutoff = 20.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
 
