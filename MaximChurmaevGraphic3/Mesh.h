@@ -18,6 +18,43 @@
 #define NORMAL_TEXTURE_UNIT GL_TEXTURE2
 #define INVALID_OGL_VALUE 0xFFFFFFFF
 #define SAFE_DELETE(p) if (p) { delete p; p = NULL; }
+class TextureMesh{
+public:
+    TextureMesh(GLenum TextureMeshTarget, const std::string& FileName){
+        m_textureTarget = TextureMeshTarget;
+        m_fileName = FileName;
+        m_pImage = NULL;
+    }
+
+    bool Load(){
+        try{
+            m_pImage = new Magick::Image(m_fileName);
+            m_pImage->write(&m_blob, "RGBA");
+        } catch(Magick::Error& Error){
+            std::cout << "Error loading TextureMesh '" << m_fileName << "': " << Error.what() << std::endl;
+            return false;
+        }
+
+        glGenTextures(1, &m_textureObj);
+        glBindTexture(m_textureTarget, m_textureObj);
+        glTexImage2D(m_textureTarget, 0, GL_RGB, m_pImage->columns(), m_pImage->rows(), -0.5, GL_RGBA, GL_UNSIGNED_BYTE, m_blob.data());
+        glTexParameterf(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameterf(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        return true;
+    }
+
+    void Bind(GLenum TextureMeshUnit){
+        glActiveTexture(TextureMeshUnit);
+        glBindTexture(m_textureTarget, m_textureObj);
+    }
+private:
+    std::string m_fileName;
+    GLenum m_textureTarget;
+    GLuint m_textureObj;
+    Magick::Image* m_pImage;
+    Magick::Blob m_blob;
+};
 
 struct VertexMesh{
     glm::fvec3 m_pos;
@@ -70,7 +107,7 @@ private:
     };
 
     std::vector<MeshEntry> m_Entries;
-    std::vector<Texture*> m_Textures;
+    std::vector<TextureMesh*> m_Textures;
 };
 
 Mesh::MeshEntry::MeshEntry(){
@@ -96,11 +133,12 @@ bool Mesh::MeshEntry::Init(const std::vector<VertexMesh>& Vertices,
 
     glGenBuffers(1, &VB);
     glBindBuffer(GL_ARRAY_BUFFER, VB);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * Vertices.size(), &Vertices[0], GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(VertexMesh) * Vertices.size(), &Vertices[0], GL_STATIC_DRAW);
 
     glGenBuffers(1, &IB);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IB);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * NumIndices, &Indices[0], GL_STATIC_DRAW);
+    return true;
 }
 
 Mesh::Mesh(){
@@ -191,9 +229,9 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
     std::string Dir;
 
     if(SlashIndex == std::string::npos){
-        Dir = ".";
+        Dir = "C:\\";
     } else if(SlashIndex == 0){
-        Dir = "/";
+        Dir = "C:\\";
     } else{
         Dir = Filename.substr(0, SlashIndex);
     }
@@ -210,16 +248,16 @@ bool Mesh::InitMaterials(const aiScene* pScene, const std::string& Filename){
             aiString Path;
 
             if(pMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &Path, NULL, NULL, NULL, NULL, NULL) == AI_SUCCESS){
-                std::string FullPath = Dir + "/" + Path.data;
-                m_Textures[i] = new Texture(GL_TEXTURE_2D, FullPath.c_str());
+                std::string FullPath = Dir + Path.data;
+                m_Textures[i] = new TextureMesh(GL_TEXTURE_2D, FullPath.c_str());
 
                 if(!m_Textures[i]->Load()){
-                    printf("Error loading texture '%s'\n", FullPath.c_str());
+                    printf("Error loading TextureMesh '%s'\n", FullPath.c_str());
                     delete m_Textures[i];
                     m_Textures[i] = NULL;
                     Ret = false;
                 } else{
-                    printf("Loaded texture '%s'\n", FullPath.c_str());
+                    printf("Loaded TextureMesh '%s'\n", FullPath.c_str());
                 }
             }
         }
@@ -236,10 +274,10 @@ void Mesh::Render(){
 
     for(unsigned int i = 0; i < m_Entries.size(); i++){
         glBindBuffer(GL_ARRAY_BUFFER, m_Entries[i].VB);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);                 // position
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12); // texture coordinate
-        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)20); // normal
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)32); // tangent
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexMesh), 0);                 // position
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexMesh), (const GLvoid*)12); // TextureMesh coordinate
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(VertexMesh), (const GLvoid*)20); // normal
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(VertexMesh), (const GLvoid*)32); // tangent
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_Entries[i].IB);
 

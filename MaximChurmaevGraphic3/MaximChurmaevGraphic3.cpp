@@ -214,7 +214,7 @@ struct Vertex{
 		m_pos = pos;
 		m_tex = tex;
 		m_normal = glm::fvec3(0.0f, 0.0f, 0.0f);
-		m_tangent = glm::fvec3(0.0f, 0.0f, 0.0f);
+		m_tangent = glm::fvec3(1.0f, 1.0f, 1.0f);
 	}
 };
 
@@ -513,6 +513,7 @@ GLuint skybox_WVPLocation; //25
 GLuint skybox_textureLocation; //25
 
 GLuint normalMap; //26
+Mesh* m_pSphereMesh; //26
 
 static const char* pVS = "                                                          \n\
 #version 330                                                                        \n\
@@ -598,7 +599,7 @@ uniform sampler2D gNormalMap;														\n\
                                                                                     \n\
 uniform vec3 gEyeWorldPos;                                                          \n\
 uniform float gMatSpecularIntensity;                                                \n\
-uniform float gSpecularPower;                                                       \n\
+uniform float gSpecularPower;														\n\
 																					\n\
 vec3 CalcBumpedNormal()																\n\
 {																					\n\
@@ -621,7 +622,7 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 	UVCoords.y = 0.5 * ProjCoords.y + 0.5;															\n\
 	float z = 0.5 * ProjCoords.z + 0.5;																\n\
 	float Depth = texture(gShadowMap, UVCoords).x;													\n\
-	if(Depth < (z + 0.00000001))																		\n\
+	if(Depth < (z + 0.00000001))																	\n\
 		return 0.5;																					\n\
 	else																							\n\
 		return 1.0;																					\n\
@@ -629,8 +630,8 @@ float CalcShadowFactor(vec4 LightSpacePos){															\n\
 vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float ShadowFactor)		\n\
 {																									\n\
 	vec4 AmbientColor = vec4(Light.Color, 1.0f) * Light.AmbientIntensity;							\n\
-	float DiffuseFactor = dot(Normal, -LightDirection);												\n\
-	float DiffuseFactor1 = 1;												\n\
+	float DiffuseFactor = dot(Normal, -LightDirection);											\n\
+	float DiffuseFactor1 = 1;																		\n\
 																									\n\
 	vec4 DiffuseColor = vec4(0, 0, 0, 0);															\n\
 	vec4 SpecularColor = vec4(0, 0, 0, 0);															\n\
@@ -647,7 +648,7 @@ vec4 CalcLightInternal(BaseLight Light, vec3 LightDirection, vec3 Normal, float 
 		}																							\n\
 	}																								\n\
 																									\n\
-	return (AmbientColor + (ShadowFactor * (DiffuseColor +  SpecularColor)));							"/*;*/"\n\
+	return (AmbientColor + (ShadowFactor * (DiffuseColor +  SpecularColor)));						\n\
 }																									\n\
 vec4 CalcDirectionalLight(vec3 Normal)																\n\
 {																									\n\
@@ -667,17 +668,17 @@ vec4 CalcPointLight(PointLight l, vec3 Normal, vec4 LightSpacePos)									\n\
 																									\n\
 	return Color / Attenuation;																		\n\
 }																									\n\
-vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)														\n\
+vec4 CalcSpotLight(SpotLight l, vec3 Normal, vec4 LightSpacePos)									\n\
 {																									\n\
 	vec3 LightToPixel = normalize(WorldPos0 - l.Base.Position);										\n\
-	float SpotFactor = dot(LightToPixel, normalize(l.Direction));												\n\
+	float SpotFactor = dot(LightToPixel, normalize(l.Direction));									\n\
 																									\n\
 	if (SpotFactor > l.Cutoff) {																	\n\
 		vec4 Color = CalcPointLight(l.Base, Normal, LightSpacePos);									\n\
 		return Color * (1.0 - (1.0 - SpotFactor) * 1.0 / (1.0 - l.Cutoff));							\n\
 	}																								\n\
 	else {																							\n\
-		return vec4(0, 0, 0, 0);																	"/* FIX TODO 0 0.3 0 0.5 */"\n\
+		return vec4(0, 0, 0, 0);																	\n\
 	}																								\n\
 }																									\n\
 void main()																							\n\
@@ -693,41 +694,39 @@ void main()																							\n\
 	}																								\n\
 																									\n\
     FragColor = texture2D(gSampler, TexCoord0.xy) * TotalLight;										\n\
-	FragColor.rgb = Normal;																			\n\
-	FragColor.a = 1.0f;																				\n\
 };";
 
 
-static const char* shadow_pVS = "                                                          \n\
-#version 330                                                                        \n\
-                                                                                    \n\
-layout (location = 0) in vec3 Position;                                             \n\
-layout (location = 1) in vec2 TexCoord;                                             \n\
-layout (location = 2) in vec3 Normal;                                               \n\
-                                                                                    \n\
-uniform mat4 gWVP;                                                                  \n\
-                                                                                    \n\
-out vec2 TexCoordOut;                                                               \n\
-                                                                                    \n\
-void main()                                                                         \n\
-{                                                                                   \n\
-    gl_Position = gWVP * vec4(Position, 1.0);                                       \n\
-    TexCoordOut = TexCoord;                                                         \n\
+static const char* shadow_pVS = "													\n\
+#version 330																		\n\
+																					\n\
+layout (location = 0) in vec3 Position;												\n\
+layout (location = 1) in vec2 TexCoord;												\n\
+layout (location = 2) in vec3 Normal;												\n\
+																					\n\
+uniform mat4 gWVP;																	\n\
+																					\n\
+out vec2 TexCoordOut;																\n\
+																					\n\
+void main()																			\n\
+{																					\n\
+    gl_Position = gWVP * vec4(Position, 1.0);										\n\
+    TexCoordOut = TexCoord;															\n\
 }";
 
-static const char* shadow_pFS = "                                                          \n\
-#version 330                                                                        \n\
-                                                                                    \n\
-in vec2 TexCoordOut;                                                                \n\
-uniform sampler2D gShadowMap;                                                       \n\
-                                                                                    \n\
-out vec4 FragColor;                                                                 \n\
-                                                                                    \n\
-void main()                                                                         \n\
-{                                                                                   \n\
-    float Depth = texture(gShadowMap, TexCoordOut).x;                               \n\
-    Depth = 1.0 - (1.0 - Depth) * 25.0;                                             \n\
-    FragColor = vec4(vec3(Depth), 1.0);                                                        \n\
+static const char* shadow_pFS = "													\n\
+#version 330																		\n\
+																					\n\
+in vec2 TexCoordOut;																\n\
+uniform sampler2D gShadowMap;														\n\
+																					\n\
+out vec4 FragColor;																	\n\
+																					\n\
+void main()																			\n\
+{																					\n\
+    float Depth = texture(gShadowMap, TexCoordOut).x;								\n\
+    Depth = 1.0 - (1.0 - Depth) * 25.0;												\n\
+    FragColor = vec4(vec3(Depth), 1.0);												\n\
 }";
 
 static const char* skybox_pVS = "													\n\
@@ -773,11 +772,12 @@ void render(){
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)32);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO2);
 
+	pNormalMap->Bind(GL_TEXTURE2);
 	pTexture->Bind(GL_TEXTURE0);
 
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-
+	/*
 	glBindBuffer(GL_ARRAY_BUFFER, VBO3);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*)12);
@@ -800,13 +800,17 @@ void render(){
 	pNormalMap->Bind(GL_TEXTURE2);
 	pTexture->Bind(GL_TEXTURE0);
 
-	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, 0);*/
 
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
+
+
+	pNormalMap->Bind(GL_TEXTURE2);
+	m_pSphereMesh->Render();
 
 
 }
@@ -876,7 +880,7 @@ void RenderSceneCB(){
 
 	m_shadowMapFBO.BindForWriting();
 	glClear(GL_DEPTH_BUFFER_BIT);
-	/*glUseProgram(ShaderShadowProgram);
+	glUseProgram(ShaderShadowProgram);
 	glCheckError();
 
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
@@ -885,13 +889,12 @@ void RenderSceneCB(){
 	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
 	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
 	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
-	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 30);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
 	*World = WorldPos * WorldRot * WorldScl;
 	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
 	glCheckError();
-	//glBindTexture(GL_TEXTURE_2D, m_shadowMapFBO.m_shadowMap);
-	render();*/
+	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glCheckError();
 
@@ -901,13 +904,12 @@ void RenderSceneCB(){
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(ShaderProgram);
 	glCheckError();
-	//m_shadowMapFBO.BindForReading(GL_TEXTURE0); //23
 	m_shadowMapFBO.BindForReading(GL_TEXTURE1); //24
 	glCheckError();
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0, 0, 5.0f);
-	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 30);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
 	glm::fvec3 CameraPos_(0.0f, 0.0f, 0.0f);
 	glm::fvec3 CameraTarget(0.0f, 0.0f, 1.0f);
 	glm::fvec3 CameraUp(0.0f, 1.0f, 0.0f);
@@ -973,7 +975,7 @@ void SkyBox::Render(){
 	Scale(WorldScl, 20.0f, 20.0f, 20.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
-	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 30);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
 	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
@@ -1267,7 +1269,7 @@ int main(int argc, char** argv){
 	glFrontFace(GL_CW);
 	glCullFace(GL_BACK);
 	glEnable(GL_CULL_FACE);
-
+	{
 
 	Vertex Vertices[4] = {
 		Vertex(glm::fvec3(-1.0f, -1.0f, 0.5773f), glm::fvec2(0.0f, 0.0f)),
@@ -1327,7 +1329,6 @@ int main(int argc, char** argv){
 	CalcNormals(Indices3, 12, Vertices3, 4);
 	CalcNormals(Indices2, 6, Vertices2, 4);
 	CalcNormals(Indices4, 36, Vertices4, 8);
-
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
@@ -1364,6 +1365,7 @@ int main(int argc, char** argv){
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(Indices4), Indices4, GL_STATIC_DRAW);
 
 	glEnable(GL_DEPTH_TEST);
+	}
 
 
 	glm::fvec3 CameraPos(0.0f, 0.0f, 0.0f);
@@ -1376,7 +1378,7 @@ int main(int argc, char** argv){
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
 	sl[0].Attenuation.Linear = 0.01f;
-	sl[0].Cutoff = 20.5f;
+	sl[0].Cutoff = 200.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
 
@@ -1396,12 +1398,18 @@ int main(int argc, char** argv){
 
 	}
 
+	m_pSphereMesh = new Mesh();
+
+	if(!m_pSphereMesh->LoadMesh("C:\\box.obj")){
+		return false;
+	}
+
 	pTexture = new Texture(GL_TEXTURE_2D, "C:\\bricks.jpg");
 
 	if(!pTexture->Load()){
 		return 1;
 	}
-
+	
 	pNormalMap = new Texture(GL_TEXTURE_2D, "C:\\normal_map.jpg");
 
 	if(!pNormalMap->Load()){
