@@ -9,6 +9,7 @@
 #include "GL/freeglut.h";
 #include <Magick++.h>;
 #include <string>;
+#include "Mesh.h";
 
 using namespace std;
 
