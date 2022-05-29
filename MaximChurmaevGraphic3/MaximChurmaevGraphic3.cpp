@@ -222,8 +222,8 @@ GLuint m_matSpecularIntensityLocation;
 GLuint m_matSpecularPowerLocation;
 GLuint m_numPointLightsLocation;
 GLuint m_numSpotLightsLocation;
-GLuint m_LightWVPLocation; //24
-GLuint m_shadowMapLocation; //24
+GLuint m_LightWVPLocation; 
+GLuint m_shadowMapLocation; 
 Texture* pTexture = NULL;
 Texture* pNormalMap = NULL;
 GLuint gSampler;
@@ -237,19 +237,19 @@ ShadowMapFBO m_shadowMapFBO;
 SpotLight sl[1];
 SkyBox* m_pSkyBox;
 
-GLuint ShaderShadowProgram; //24
-GLuint ShaderProgram; //24
+GLuint ShaderShadowProgram; 
+GLuint ShaderProgram; 
 
 GLuint m_WVPLocation;
 GLuint m_textureLocation;
 
-GLuint ShaderSkyboxProgram; //25
+GLuint ShaderSkyboxProgram; 
 
-GLuint skybox_WVPLocation; //25
-GLuint skybox_textureLocation; //25
+GLuint skybox_WVPLocation; 
+GLuint skybox_textureLocation; 
 
-GLuint normalMap; //26
-Mesh* m_pSphereMesh; //26
+GLuint normalMap; 
+Mesh* m_pSphereMesh; 
 
 
 
@@ -322,42 +322,40 @@ void RenderSceneCB(){
 	Scale(WorldScl, 1.0f, 1.0f, 1.0f);
 	RotateY(WorldRot, rotate);
 	Translate(WorldPos, 0.0f, 0.0f, 5.0f);
+	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
+	*World = WorldPos * WorldRot * WorldScl;
 
 	m_shadowMapFBO.BindForWriting();
 	glClear(GL_DEPTH_BUFFER_BIT);
-	/*glUseProgram(ShaderShadowProgram);
-	glCheckError();
-
+	/*** Shadow ***/
+	glUseProgram(ShaderShadowProgram);
 	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));
 	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);
 	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);
-	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
-	*World = WorldPos * WorldRot * WorldScl;
 	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 	glUniformMatrix4fv(m_WVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);
 	glCheckError();
-	render();*/
+	render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+	/*** Main Render ***/
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glUseProgram(ShaderProgram);
-	m_shadowMapFBO.BindForReading(GL_TEXTURE1); //24
-	Pers(WorldPers, 1.0f, 50.0f, 1024, 768, 60);
+	m_shadowMapFBO.BindForReading(GL_TEXTURE1); 
 	SetCamera(CameraPos_, CameraTarget, CameraUp);
 	Translate(CameraPos, -m_camera.Pos.x, -m_camera.Pos.y, -m_camera.Pos.z);
 	CameraTransform(m_camera.Target, m_camera.Up, CameraRot);
-	*World = glm::transpose(WorldPos * WorldRot * WorldScl);
-	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World));
+	*m_transformation = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World);
 
 	glUniformMatrix4fv(m_WorldMatrixLocation, 1, GL_TRUE, (const GLfloat*)World);
 	glUniformMatrix4fv(gWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformation);
 	glUniform3f(m_eyeWorldPosition, m_camera.Pos.x, m_camera.Pos.y, m_camera.Pos.z);
 
-	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));	//24
-	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);	//24
-	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);	//24
-	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * glm::transpose(*World)); //24
-	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);	//24
+	SetCamera(sl[0].Position, sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f));	
+	Translate(CameraPos, -sl[0].Position.x, -sl[0].Position.y, -sl[0].Position.z);	
+	CameraTransform(sl[0].Direction, glm::fvec3(0.0f, 1.0f, 0.0f), CameraRot);	
+	*m_transformationS = glm::transpose(WorldPers * glm::transpose(CameraRot) * CameraPos * *World); 
+	glUniformMatrix4fv(m_LightWVPLocation, 1, GL_TRUE, (const GLfloat*)m_transformationS);	
 	glCheckError();
 
 	render();
@@ -635,13 +633,14 @@ static void CompileShaders(){
 		m_spotLightsLocation[i].Atten.Exp = glGetUniformLocation(ShaderProgram, Name);
 	}
 }
+
 int main(int argc, char** argv){
 	initGlutAndMagick(argc, argv);
 	glutDisplayFunc(RenderSceneCB);
 	glutIdleFunc(RenderSceneCB);
 
 	CompileShadowShaders();
-	glUniform1i(m_shadowMapLocation, 0); //24
+	glUniform1i(m_shadowMapLocation, 0); 
 	glCheckError();
 
 	glUniform1i(m_textureLocation, 1);
@@ -652,17 +651,17 @@ int main(int argc, char** argv){
 	}
 
 	CompileSkyboxShaders();
-	glUniform1i(skybox_textureLocation, 0); //25
+	glUniform1i(skybox_textureLocation, 0); 
 	glCheckError();
 
 	CompileShaders();
 	glUniform1i(gSampler, 0);
 	glCheckError();
 
-	glUniform1i(m_shadowMapLocation, 1); //24
+	glUniform1i(m_shadowMapLocation, 1); 
 	glCheckError();
 
-	glUniform1i(normalMap, 2); //26
+	glUniform1i(normalMap, 2); 
 	glCheckError();
 
 	{
@@ -762,13 +761,6 @@ int main(int argc, char** argv){
 
 	glEnable(GL_DEPTH_TEST);
 	}
-
-	/*DirectionalLight Light;
-	Light.Color = glm::vec3(1.0f, 1.0f, 1.0f);
-	Light.AmbientIntensity = 1.0f;
-	glUniform3f(m_dirLightColorLocation, Light.Color.x, Light.Color.y, Light.Color.z);
-	glUniform1f(m_dirLightAmbientIntensityLocation, Light.AmbientIntensity);*/
-
 
 	sl[0].DiffuseIntensity = 0.8f;
 	sl[0].Color = glm::fvec3(1.0f, 1.0f, 1.0f);
