@@ -284,7 +284,7 @@ void Mesh::Render(){
         const unsigned int MaterialIndex = m_Entries[i].MaterialIndex;
 
         if(MaterialIndex < m_Textures.size() && m_Textures[MaterialIndex]){
-            m_Textures[MaterialIndex]->Bind(COLOR_TEXTURE_UNIT);
+            //m_Textures[MaterialIndex]->Bind(COLOR_TEXTURE_UNIT);
         }
 
         glDrawElements(GL_TRIANGLES, m_Entries[i].NumIndices, GL_UNSIGNED_INT, 0);

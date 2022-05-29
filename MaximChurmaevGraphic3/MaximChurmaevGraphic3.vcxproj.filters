@@ -23,5 +23,14 @@
     <ClInclude Include="Mesh.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="Functions.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="Shaders.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="Lights.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

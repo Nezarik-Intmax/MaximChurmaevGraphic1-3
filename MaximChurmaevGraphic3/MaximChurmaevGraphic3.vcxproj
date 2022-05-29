@@ -154,6 +154,9 @@
     <ClCompile Include="MaximChurmaevGraphic3.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Functions.h" />
+    <ClInclude Include="Lights.h" />
+    <ClInclude Include="Shaders.h" />
     <ClInclude Include="Mesh.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
