@@ -177,7 +177,7 @@ void RenderSceneCB(){
 	unsigned int Indices[] = {0, 3, 1,
 							  1, 3, 2,
 							  2, 3, 0,
-							  0, 2, 1};
+							  1, 2, 0};
 
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -307,7 +307,7 @@ int main(int argc, char** argv){
 	CompileShaders();
 	glUniform1i(gSampler, 0);
 
-	pTexture = new Texture(GL_TEXTURE_2D, "C:\\test.png");
+	pTexture = new Texture(GL_TEXTURE_2D, "C:\\test.jpg");
 
 	if (!pTexture->Load()) {
 		return 1;
