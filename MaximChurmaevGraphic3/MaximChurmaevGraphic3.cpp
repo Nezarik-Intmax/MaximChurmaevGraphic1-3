@@ -200,6 +200,37 @@ public:
 	GLuint m_fbo;
 	GLuint m_shadowMap;
 };
+class BillboardList{
+public:
+	BillboardList();
+	~BillboardList();
+
+	bool Init(const std::string& TexFilename);
+
+	void Render(const Matrix4f& VP, const Vector3f& CameraPos);
+
+private:
+	void CreatePositionBuffer();
+
+	GLuint m_VB;
+	Texture* m_pTexture;
+};
+void BillboardList::Render(const Matrix4f& VP, const Vector3f& CameraPos){
+	m_technique.Enable();
+	m_technique.SetVP(VP);
+	m_technique.SetCameraPosition(CameraPos);
+
+	m_pTexture->Bind(COLOR_TEXTURE_UNIT);
+
+	glEnableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, m_VB);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vector3f), 0);   // position
+
+	glDrawArrays(GL_POINTS, 0, NUM_ROWS * NUM_COLUMNS);
+
+	glDisableVertexAttribArray(0);
+}
 
 
 GLuint VAO;
@@ -767,7 +798,6 @@ int main(int argc, char** argv){
 	sl[0].Position = glm::fvec3(-8.3f, 3.0f, 5.0f);
 	sl[0].AmbientIntensity = 0.3f;
 	sl[0].Direction = glm::fvec3(0.8f, -0.3f, 0.0f);
-	sl[0].Attenuation.Linear = 0.0001f;
 	sl[0].Cutoff = 200.5f;
 	glUniform1i(m_numSpotLightsLocation, 1);
 	glCheckError();
